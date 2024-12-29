@@ -17,6 +17,14 @@ import {
   FileText,
   Workflow,
   Menu,
+  Building2,
+  Contact2,
+  Network,
+  ClipboardList,
+  Building,
+  UserCircle,
+  Activity,
+  History,
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -26,6 +34,7 @@ import { ThemeToggle } from './theme-toggle'
 import { UserRole } from '@prisma/client'
 
 const navigation = [
+  // Dashboard & Overview
   {
     name: 'Dashboard',
     href: '/dashboard',
@@ -33,11 +42,27 @@ const navigation = [
     roles: [UserRole.ADMIN, UserRole.STAFF, UserRole.PROJECT_MGT, UserRole.CEO],
   },
   {
+    name: 'Activity Log',
+    href: '/activity',
+    icon: Activity,
+    roles: [UserRole.ADMIN, UserRole.PROJECT_MGT, UserRole.CEO],
+  },
+
+  // Project Management
+  {
     name: 'Projects',
     href: '/projects',
     icon: FolderKanban,
     roles: [UserRole.ADMIN, UserRole.STAFF, UserRole.PROJECT_MGT, UserRole.CEO],
   },
+  {
+    name: 'Tasks',
+    href: '/tasks',
+    icon: ClipboardList,
+    roles: [UserRole.ADMIN, UserRole.STAFF, UserRole.PROJECT_MGT, UserRole.CEO],
+  },
+
+  // Workflow System
   {
     name: 'Workflows',
     href: '/workflows',
@@ -45,11 +70,55 @@ const navigation = [
     roles: [UserRole.ADMIN, UserRole.PROJECT_MGT, UserRole.CEO],
   },
   {
+    name: 'Workflow Templates',
+    href: '/workflows/templates',
+    icon: Network,
+    roles: [UserRole.ADMIN, UserRole.PROJECT_MGT],
+  },
+  {
+    name: 'Workflow History',
+    href: '/workflows/history',
+    icon: History,
+    roles: [UserRole.ADMIN, UserRole.PROJECT_MGT, UserRole.CEO],
+  },
+
+  // Customer & Contact Management
+  {
+    name: 'Customers',
+    href: '/customers',
+    icon: Building2,
+    roles: [UserRole.ADMIN, UserRole.PROJECT_MGT, UserRole.CEO],
+  },
+  {
+    name: 'Contacts',
+    href: '/contacts',
+    icon: Contact2,
+    roles: [UserRole.ADMIN, UserRole.PROJECT_MGT, UserRole.STAFF],
+  },
+
+  // Resource Management
+  {
+    name: 'Departments',
+    href: '/departments',
+    icon: Building,
+    roles: [UserRole.ADMIN, UserRole.CEO],
+  },
+  {
+    name: 'Resources',
+    href: '/resources',
+    icon: UserCircle,
+    roles: [UserRole.ADMIN, UserRole.PROJECT_MGT, UserRole.CEO],
+  },
+
+  // Forms & Documentation
+  {
     name: 'Forms',
     href: '/forms',
     icon: FileText,
     roles: [UserRole.ADMIN, UserRole.PROJECT_MGT],
   },
+
+  // Administration
   {
     name: 'Users',
     href: '/admin/users',

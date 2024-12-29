@@ -1,16 +1,17 @@
 import type { Metadata } from "next";
-import { GeistSans } from "geist/font";
-import { GeistMono } from "geist/font";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { WorkspaceProvider } from "@/providers/workspace-provider";
-import { FormProvider } from "@/providers/form-provider";
-import { WorkflowProvider } from "@/providers/workflow-provider";
-import { SessionProvider } from "@/providers/session-provider";
+import { AppSidebar } from "@/components/app-sidebar";
+import { Toaster } from "@/components/ui/toaster";
+import { AuthProvider } from "@/providers/auth-provider";
+
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Enterprise Project Management",
-  description: "A comprehensive project management system with workflow automation",
+  description: "Enterprise Project Management System",
 };
 
 export default function RootLayout({
@@ -20,23 +21,25 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${GeistSans.variable} ${GeistMono.variable} font-sans antialiased`}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <SessionProvider>
+      <body className={inter.className}>
+        <AuthProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
             <WorkspaceProvider>
-              <FormProvider>
-                <WorkflowProvider>
+              <div className="flex min-h-screen">
+                <AppSidebar />
+                <main className="flex-1 pl-16 lg:pl-64">
                   {children}
-                </WorkflowProvider>
-              </FormProvider>
+                </main>
+              </div>
+              <Toaster />
             </WorkspaceProvider>
-          </SessionProvider>
-        </ThemeProvider>
+          </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   )

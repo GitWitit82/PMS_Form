@@ -1,4 +1,72 @@
 import bcrypt from 'bcrypt'
+import { NextAuthOptions } from 'next-auth'
+import CredentialsProvider from 'next-auth/providers/credentials'
+import { prisma } from '@/lib/prisma'
+
+/**
+ * NextAuth configuration options
+ */
+export const authOptions: NextAuthOptions = {
+  providers: [
+    CredentialsProvider({
+      name: 'credentials',
+      credentials: {
+        username: { label: 'Username', type: 'text' },
+        pin: { label: 'PIN', type: 'password' }
+      },
+      async authorize(credentials) {
+        if (!credentials?.username || !credentials?.pin) {
+          return null
+        }
+
+        const user = await prisma.user.findUnique({
+          where: { username: credentials.username }
+        })
+
+        if (!user) {
+          return null
+        }
+
+        const isValid = await bcrypt.compare(credentials.pin, user.pin_hash)
+
+        if (!isValid) {
+          return null
+        }
+
+        return {
+          id: user.user_id.toString(),
+          username: user.username,
+          email: user.email,
+          role: user.role
+        }
+      }
+    })
+  ],
+  pages: {
+    signIn: '/auth/signin'
+  },
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id
+        token.username = user.username
+        token.role = user.role
+      }
+      return token
+    },
+    async session({ session, token }) {
+      if (token) {
+        session.user.id = token.id
+        session.user.username = token.username as string
+        session.user.role = token.role
+      }
+      return session
+    }
+  },
+  session: {
+    strategy: 'jwt'
+  }
+}
 
 /**
  * Validates if the input is a 4-digit PIN
