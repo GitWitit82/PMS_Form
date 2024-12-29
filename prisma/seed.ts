@@ -1,389 +1,340 @@
-import { PrismaClient, UserRole } from '@prisma/client'
-import bcrypt from 'bcrypt'
+import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
 async function main() {
-  // Create admin user if it doesn't exist
-  const adminPin = await bcrypt.hash('1234', 10)
-  const admin = await prisma.user.upsert({
-    where: { email: 'admin@example.com' },
-    update: {},
-    create: {
-      email: 'admin@example.com',
-      username: 'admin',
-      pin_hash: adminPin,
-      role: UserRole.ADMIN,
-    },
-  })
-
-  // Create standard workflow template
-  const workflow = await prisma.workflow.create({
+  // Create the standard workflow
+  await prisma.workflow.create({
     data: {
-      name: 'Standard Workflow',
-      description: 'Default workflow template for all projects',
-      user_creator: {
-        connect: {
-          user_id: admin.user_id
-        }
-      },
-      user_updater: {
-        connect: {
-          user_id: admin.user_id
-        }
-      },
-      steps: {
+      name: "Standard Project Workflow",
+      description: "Standard workflow template for project management",
+      workflowTasks: {
         create: [
           // Stage 1 - Project Initiation
           {
-            name: 'Initial Contact',
-            description: 'Lead or Prospect',
-            step_type: 'TASK',
-            order: 1,
-            config: {
-              inputs: {
-                contactName: { type: 'string', required: true },
-                contactEmail: { type: 'string', required: true },
-                contactPhone: { type: 'string', required: false },
-                notes: { type: 'string', required: false }
-              }
-            }
+            name: "Initial Contact",
+            description: "First contact with lead or prospect",
+            priority: "HIGH",
+            stage: "PROJECT_INITIATION",
+            order: 1
           },
           {
-            name: 'Create Folder & Traveler',
-            description: 'Work Order Made',
-            step_type: 'TASK',
-            order: 2,
-            config: {
-              inputs: {
-                projectName: { type: 'string', required: true },
-                projectNumber: { type: 'string', required: true }
-              }
-            }
+            name: "Create Folder & Traveler",
+            description: "Work order creation and documentation setup",
+            priority: "HIGH",
+            stage: "PROJECT_INITIATION",
+            order: 2
           },
           {
-            name: 'Sticky Created & Put on Board',
-            step_type: 'TASK',
-            order: 3,
-            config: {}
+            name: "Create Sticky Board Entry",
+            description: "Add project to tracking board",
+            priority: "MEDIUM",
+            stage: "PROJECT_INITIATION",
+            order: 3
           },
           {
-            name: 'Pre-Development Meeting',
-            description: 'Phone/In Person',
-            step_type: 'TASK',
-            order: 4,
-            config: {
-              inputs: {
-                meetingDate: { type: 'date', required: true },
-                meetingType: { type: 'string', required: true },
-                meetingNotes: { type: 'string', required: false }
-              }
-            }
+            name: "Pre-Development Meeting",
+            description: "Initial meeting (Phone/In Person)",
+            priority: "HIGH",
+            stage: "PROJECT_INITIATION",
+            order: 4
           },
           {
-            name: 'Initial Estimated Invoice',
-            description: '50% of total or $500 deposit',
-            step_type: 'TASK',
-            order: 5,
-            config: {
-              inputs: {
-                estimatedTotal: { type: 'number', required: true },
-                depositAmount: { type: 'number', required: true }
-              }
-            }
+            name: "Initial Invoice Creation",
+            description: "Create initial invoice (50% of total or $500 deposit)",
+            priority: "HIGH",
+            stage: "PROJECT_INITIATION",
+            order: 5
           },
-
+          
           // Stage 2 - Design Development
           {
-            name: 'Creative Concept Meeting',
-            description: 'Phone/In Person',
-            step_type: 'TASK',
-            order: 6,
-            config: {
-              inputs: {
-                meetingDate: { type: 'date', required: true },
-                conceptNotes: { type: 'string', required: true }
-              }
-            }
+            name: "Creative Concept Meeting",
+            description: "Discuss creative direction (Phone/In Person)",
+            priority: "HIGH",
+            stage: "DESIGN_DEVELOPMENT",
+            order: 6
           },
           {
-            name: 'Follow-up Email',
-            description: 'Collect Collaterals & Terms and Conditions',
-            step_type: 'TASK',
-            order: 7,
-            config: {
-              inputs: {
-                emailSent: { type: 'boolean', required: true },
-                collateralsReceived: { type: 'boolean', required: true }
-              }
-            }
+            name: "Collect Materials",
+            description: "Follow-up email to collect collaterals & terms",
+            priority: "HIGH",
+            stage: "DESIGN_DEVELOPMENT",
+            order: 7
           },
           {
-            name: 'Rough Mockup',
-            description: 'New RES/PNG Template',
-            step_type: 'TASK',
-            order: 8,
-            config: {}
+            name: "Create Rough Mockup",
+            description: "Develop initial RES/PNG template",
+            priority: "HIGH",
+            stage: "DESIGN_DEVELOPMENT",
+            order: 8
           },
           {
-            name: 'Photos & Sizing',
-            step_type: 'TASK',
-            order: 9,
-            config: {}
+            name: "Photo Documentation",
+            description: "Capture and organize project photos & sizing",
+            priority: "MEDIUM",
+            stage: "DESIGN_DEVELOPMENT",
+            order: 9
           },
           {
-            name: 'Physical Inspection',
-            description: 'List of Additional Services Sold/Needed',
-            step_type: 'TASK',
-            order: 10,
-            config: {
-              inputs: {
-                additionalServices: { type: 'string', required: false }
-              }
-            }
+            name: "Physical Inspection",
+            description: "On-site inspection and additional services assessment",
+            priority: "HIGH",
+            stage: "DESIGN_DEVELOPMENT",
+            order: 10
           },
           {
-            name: 'Confirm & Update Invoice',
-            step_type: 'TASK',
-            order: 11,
-            config: {}
+            name: "Update Invoice",
+            description: "Review and update invoice based on requirements",
+            priority: "HIGH",
+            stage: "DESIGN_DEVELOPMENT",
+            order: 11
           },
 
           // Stage 3 - Design Execution
           {
-            name: 'Pre-Design Layout Meeting',
-            step_type: 'TASK',
-            order: 12,
-            config: {}
+            name: "Pre-Design Layout Meeting",
+            description: "Final design planning meeting",
+            priority: "HIGH",
+            stage: "DESIGN_EXECUTION",
+            order: 12
           },
           {
-            name: 'Create & Verify Template',
-            step_type: 'TASK',
-            order: 13,
-            config: {}
+            name: "Template Creation",
+            description: "Create and verify design template",
+            priority: "HIGH",
+            stage: "DESIGN_EXECUTION",
+            order: 13
           },
           {
-            name: 'Start High-Res Design',
-            description: 'Hi RES/Single Side',
-            step_type: 'TASK',
-            order: 14,
-            config: {}
+            name: "High-Res Design",
+            description: "Create high resolution design",
+            priority: "HIGH",
+            stage: "DESIGN_EXECUTION",
+            order: 14
           },
           {
-            name: 'Art Direction Sign Off',
-            step_type: 'APPROVAL',
-            order: 15,
-            config: {}
+            name: "Art Direction Approval",
+            description: "Internal design approval",
+            priority: "HIGH",
+            stage: "DESIGN_EXECUTION",
+            order: 15
           },
           {
-            name: 'Customer Sign Off',
-            step_type: 'APPROVAL',
-            order: 16,
-            config: {}
+            name: "Customer Approval",
+            description: "Client sign-off on design",
+            priority: "HIGH",
+            stage: "DESIGN_EXECUTION",
+            order: 16
           },
           {
-            name: 'Final Design',
-            step_type: 'TASK',
-            order: 17,
-            config: {}
+            name: "Finalize Design",
+            description: "Complete final design adjustments",
+            priority: "HIGH",
+            stage: "DESIGN_EXECUTION",
+            order: 17
           },
 
           // Stage 4 - Production Setup
           {
-            name: 'Internal Proof',
-            step_type: 'TASK',
-            order: 18,
-            config: {}
+            name: "Internal Proofing",
+            description: "Internal review of final design",
+            priority: "HIGH",
+            stage: "PRODUCTION_SETUP",
+            order: 18
           },
           {
-            name: 'Art Direction Sign Off',
-            step_type: 'APPROVAL',
-            order: 19,
-            config: {}
+            name: "Final Art Direction Approval",
+            description: "Final internal design approval",
+            priority: "HIGH",
+            stage: "PRODUCTION_SETUP",
+            order: 19
           },
           {
-            name: 'Customer Sign Off',
-            step_type: 'APPROVAL',
-            order: 20,
-            config: {}
+            name: "Final Customer Approval",
+            description: "Final client sign-off",
+            priority: "HIGH",
+            stage: "PRODUCTION_SETUP",
+            order: 20
           },
           {
-            name: 'Confirm 50% Deposit',
-            description: 'Cash/Credit/Online',
-            step_type: 'TASK',
-            order: 21,
-            config: {
-              inputs: {
-                paymentMethod: { type: 'string', required: true },
-                paymentConfirmed: { type: 'boolean', required: true }
-              }
-            }
+            name: "Deposit Confirmation",
+            description: "Verify 50% deposit payment",
+            priority: "HIGH",
+            stage: "PRODUCTION_SETUP",
+            order: 21
           },
           {
-            name: 'Firm Hold',
-            description: 'Schedule Install Drop Off',
-            step_type: 'TASK',
-            order: 22,
-            config: {}
+            name: "Schedule Installation",
+            description: "Set firm installation/delivery date",
+            priority: "HIGH",
+            stage: "PRODUCTION_SETUP",
+            order: 22
           },
           {
-            name: 'Order Raw Materials',
-            step_type: 'TASK',
-            order: 23,
-            config: {}
+            name: "Material Procurement",
+            description: "Order necessary raw materials",
+            priority: "HIGH",
+            stage: "PRODUCTION_SETUP",
+            order: 23
           },
 
           // Stage 5 - Production
           {
-            name: 'Installer Sheet Made',
-            step_type: 'TASK',
-            order: 24,
-            config: {}
+            name: "Create Installer Sheet",
+            description: "Prepare installation documentation",
+            priority: "HIGH",
+            stage: "PRODUCTION",
+            order: 24
           },
           {
-            name: 'Print Ready Files Blueprints & Review',
-            step_type: 'TASK',
-            order: 25,
-            config: {}
+            name: "Print Ready Review",
+            description: "Review blueprints and print files",
+            priority: "HIGH",
+            stage: "PRODUCTION",
+            order: 25
           },
           {
-            name: 'Pre-Install Meeting',
-            step_type: 'TASK',
-            order: 26,
-            config: {}
+            name: "Pre-Install Meeting",
+            description: "Installation team briefing",
+            priority: "HIGH",
+            stage: "PRODUCTION",
+            order: 26
           },
           {
-            name: 'Paneling',
-            step_type: 'TASK',
-            order: 27,
-            config: {}
+            name: "Paneling Process",
+            description: "Complete paneling work",
+            priority: "HIGH",
+            stage: "PRODUCTION",
+            order: 27
           },
           {
-            name: 'Printing',
-            step_type: 'TASK',
-            order: 28,
-            config: {}
+            name: "Printing Process",
+            description: "Execute printing phase",
+            priority: "HIGH",
+            stage: "PRODUCTION",
+            order: 28
           },
           {
-            name: 'Lamination Rough Q.C.',
-            step_type: 'TASK',
-            order: 29,
-            config: {}
+            name: "Lamination and QC",
+            description: "Lamination and initial quality check",
+            priority: "HIGH",
+            stage: "PRODUCTION",
+            order: 29
           },
           {
-            name: 'Trim & Sew',
-            step_type: 'TASK',
-            order: 30,
-            config: {}
+            name: "Trim and Sew",
+            description: "Complete trim and sewing work",
+            priority: "HIGH",
+            stage: "PRODUCTION",
+            order: 30
           },
 
           // Stage 6 - Installation and Quality Control
           {
-            name: 'Plot',
-            step_type: 'TASK',
-            order: 31,
-            config: {}
+            name: "Plot Setup",
+            description: "Prepare installation plot",
+            priority: "HIGH",
+            stage: "INSTALLATION",
+            order: 31
           },
           {
-            name: 'Project Inventory Control/Q.C.',
-            step_type: 'TASK',
-            order: 32,
-            config: {}
+            name: "Inventory Control",
+            description: "Project inventory check and quality control",
+            priority: "HIGH",
+            stage: "INSTALLATION",
+            order: 32
           },
           {
-            name: 'Intake of Item',
-            step_type: 'TASK',
-            order: 33,
-            config: {}
+            name: "Item Intake",
+            description: "Receive and process items",
+            priority: "HIGH",
+            stage: "INSTALLATION",
+            order: 33
           },
           {
-            name: 'Wrap Plan Set-up',
-            step_type: 'TASK',
-            order: 34,
-            config: {}
+            name: "Wrap Plan Setup",
+            description: "Prepare wrap plan",
+            priority: "HIGH",
+            stage: "INSTALLATION",
+            order: 34
           },
           {
-            name: 'Repairs & Vinyl/Adhesive Removals',
-            step_type: 'TASK',
-            order: 35,
-            config: {}
+            name: "Surface Preparation",
+            description: "Repairs & vinyl/adhesive removals",
+            priority: "HIGH",
+            stage: "INSTALLATION",
+            order: 35
           },
           {
-            name: 'Clean & Prep Removals',
-            step_type: 'TASK',
-            order: 36,
-            config: {}
+            name: "Clean and Prep",
+            description: "Surface cleaning and preparation",
+            priority: "HIGH",
+            stage: "INSTALLATION",
+            order: 36
           },
           {
-            name: 'Dry Hang & Photo',
-            step_type: 'TASK',
-            order: 37,
-            config: {}
+            name: "Dry Fit",
+            description: "Dry hang and photo documentation",
+            priority: "HIGH",
+            stage: "INSTALLATION",
+            order: 37
           },
           {
-            name: 'Install',
-            description: 'On-Location',
-            step_type: 'TASK',
-            order: 38,
-            config: {}
+            name: "Installation",
+            description: "On-location installation",
+            priority: "HIGH",
+            stage: "INSTALLATION",
+            order: 38
           },
           {
-            name: 'Post Wrap',
-            step_type: 'TASK',
-            order: 39,
-            config: {}
+            name: "Post-Wrap Process",
+            description: "Complete post-wrap procedures",
+            priority: "HIGH",
+            stage: "INSTALLATION",
+            order: 39
           },
           {
-            name: 'Q.C. & Photos',
-            step_type: 'TASK',
-            order: 40,
-            config: {}
+            name: "Final QC",
+            description: "Quality control and photo documentation",
+            priority: "HIGH",
+            stage: "INSTALLATION",
+            order: 40
           },
           {
-            name: 'Balance',
-            step_type: 'TASK',
-            order: 41,
-            config: {}
+            name: "Balance Settlement",
+            description: "Process final payment",
+            priority: "HIGH",
+            stage: "INSTALLATION",
+            order: 41
           },
           {
-            name: 'Reveal',
-            description: 'Confirmed/Flexible/Pick Up/No Reveal/Deliver',
-            step_type: 'TASK',
-            order: 42,
-            config: {
-              inputs: {
-                revealType: { type: 'string', required: true },
-                revealDate: { type: 'date', required: true }
-              }
-            }
+            name: "Project Reveal",
+            description: "Final reveal and client handover",
+            priority: "HIGH",
+            stage: "INSTALLATION",
+            order: 42
           },
           {
-            name: 'Debrief All Depts.',
-            step_type: 'TASK',
-            order: 43,
-            config: {}
+            name: "Department Debrief",
+            description: "Final team debrief",
+            priority: "MEDIUM",
+            stage: "INSTALLATION",
+            order: 43
           },
 
           // Final Stage
           {
-            name: 'Close Project',
-            description: 'File All Paperwork, Update Website & Facebook',
-            step_type: 'TASK',
-            order: 44,
-            config: {
-              inputs: {
-                paperworkFiled: { type: 'boolean', required: true },
-                websiteUpdated: { type: 'boolean', required: true },
-                socialMediaUpdated: { type: 'boolean', required: true }
-              }
-            }
+            name: "Project Closure",
+            description: "File paperwork and update social media",
+            priority: "HIGH",
+            stage: "COMPLETION",
+            order: 44
           }
         ]
       }
     }
   })
-
-  console.log('Seed data created successfully')
 }
 
 main()

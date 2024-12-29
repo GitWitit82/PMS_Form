@@ -15,16 +15,14 @@ import {
   Users,
   Settings,
   FileText,
-  Workflow,
   Menu,
   Building2,
   Contact2,
-  Network,
-  ClipboardList,
   Building,
   UserCircle,
   Activity,
-  History,
+  ClipboardList,
+  GitBranch,
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
@@ -61,24 +59,10 @@ const navigation = [
     icon: ClipboardList,
     roles: [UserRole.ADMIN, UserRole.STAFF, UserRole.PROJECT_MGT, UserRole.CEO],
   },
-
-  // Workflow System
   {
     name: 'Workflows',
     href: '/workflows',
-    icon: Workflow,
-    roles: [UserRole.ADMIN, UserRole.PROJECT_MGT, UserRole.CEO],
-  },
-  {
-    name: 'Workflow Templates',
-    href: '/workflows/templates',
-    icon: Network,
-    roles: [UserRole.ADMIN, UserRole.PROJECT_MGT],
-  },
-  {
-    name: 'Workflow History',
-    href: '/workflows/history',
-    icon: History,
+    icon: GitBranch,
     roles: [UserRole.ADMIN, UserRole.PROJECT_MGT, UserRole.CEO],
   },
 
