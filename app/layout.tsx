@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { GeistSans } from "geist/font/sans";
-import { GeistMono } from "geist/font/mono";
+import { GeistSans } from "geist/font";
+import { GeistMono } from "geist/font";
 import "./globals.css";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { WorkspaceProvider } from "@/providers/workspace-provider";

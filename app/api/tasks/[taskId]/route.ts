@@ -5,164 +5,201 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { successResponse, errorResponse, ApiError } from '@/lib/api-response'
+import { successResponse, errorResponse } from '@/lib/api-response'
 import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { logActivity } from '@/lib/activity-logger'
 
-// Validation schema for updating tasks
 const taskUpdateSchema = z.object({
-  project_id: z.number().optional(),
-  resource_id: z.number().optional(),
-  department_id: z.number().optional(),
   name: z.string().min(1, 'Task name is required').optional(),
   description: z.string().optional(),
-  scheduled_start_time: z.string().optional(),
-  scheduled_start_date: z.string().optional(),
-  scheduled_end_time: z.string().optional(),
-  scheduled_end_date: z.string().optional(),
-  actual_start_time: z.string().optional(),
-  actual_start_date: z.string().optional(),
-  actual_end_time: z.string().optional(),
-  actual_end_date: z.string().optional(),
-  delay_duration: z.string().optional(),
-  delay_reason: z.string().optional(),
-  delay_status: z.string().optional(),
-  completion_status: z.string().optional(),
-  priority: z.string().optional(),
-  status: z.string().optional(),
+  project_id: z.number().optional(),
+  resource_id: z.number().optional().nullable(),
+  department_id: z.number().optional().nullable(),
+  scheduled_start_date: z.string().optional().nullable(),
+  scheduled_end_date: z.string().optional().nullable(),
+  scheduled_start_time: z.string().optional().nullable(),
+  scheduled_end_time: z.string().optional().nullable(),
+  actual_start_date: z.string().optional().nullable(),
+  actual_end_date: z.string().optional().nullable(),
+  actual_start_time: z.string().optional().nullable(),
+  actual_end_time: z.string().optional().nullable(),
+  delay_duration: z.string().optional().nullable(),
+  delay_reason: z.string().optional().nullable(),
+  delay_status: z.string().optional().nullable(),
+  completion_status: z.string().optional().nullable(),
+  completion_percentage: z.number().min(0).max(100).optional(),
+  priority: z.enum(['Low', 'Medium', 'High', 'Critical']).optional(),
+  status: z.enum(['Pending', 'In Progress', 'On Hold', 'Completed', 'Cancelled']).optional(),
 })
 
 /**
  * GET /api/tasks/[taskId]
- * Get a single task by ID
+ * Retrieve a specific task by ID
  */
 export async function GET(
-  req: NextRequest,
+  request: NextRequest,
   { params }: { params: { taskId: string } }
 ) {
   try {
-    const session = await getServerSession()
+    const session = await getServerSession(authOptions)
     if (!session) {
-      throw new ApiError('UNAUTHORIZED', 'You must be logged in to access this resource')
-    }
-
-    const taskId = parseInt(params.taskId)
-    if (isNaN(taskId)) {
-      throw new ApiError('INVALID_ID', 'Invalid task ID')
+      return errorResponse('Unauthorized', 401)
     }
 
     const task = await prisma.task.findUnique({
-      where: { task_id: taskId },
+      where: {
+        task_id: parseInt(params.taskId),
+      },
       include: {
-        Project: true,
-        Resource: true,
-        Department: true,
+        Project: {
+          select: {
+            name: true,
+          },
+        },
+        Resource: {
+          select: {
+            name: true,
+            Department: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
+        Department: {
+          select: {
+            name: true,
+          },
+        },
+        Dependencies: {
+          include: {
+            DependentTask: {
+              select: {
+                task_id: true,
+                name: true,
+                status: true,
+                Project: {
+                  select: {
+                    name: true,
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     })
 
     if (!task) {
-      throw new ApiError('NOT_FOUND', 'Task not found')
+      return errorResponse('Task not found', 404)
     }
 
-    return Response.json(successResponse(task))
+    return successResponse({ task })
   } catch (error) {
-    if (error instanceof ApiError && error.code === 'NOT_FOUND') {
-      return Response.json(errorResponse(error), { status: 404 })
-    }
-    return Response.json(errorResponse(error as Error), { status: 500 })
+    console.error('Error retrieving task:', error)
+    return errorResponse('Error retrieving task')
   }
 }
 
 /**
  * PATCH /api/tasks/[taskId]
- * Update a single task
+ * Update a specific task
  */
 export async function PATCH(
-  req: NextRequest,
+  request: NextRequest,
   { params }: { params: { taskId: string } }
 ) {
   try {
-    const session = await getServerSession()
+    const session = await getServerSession(authOptions)
     if (!session) {
-      throw new ApiError('UNAUTHORIZED', 'You must be logged in to access this resource')
+      return errorResponse('Unauthorized', 401)
     }
 
-    const taskId = parseInt(params.taskId)
-    if (isNaN(taskId)) {
-      throw new ApiError('INVALID_ID', 'Invalid task ID')
-    }
-
-    const body = await req.json()
-    const validatedData = taskUpdateSchema.parse(body)
-
-    // Convert date strings to Date objects
-    const dateFields = [
-      'scheduled_start_time',
-      'scheduled_start_date',
-      'scheduled_end_time',
-      'scheduled_end_date',
-      'actual_start_time',
-      'actual_start_date',
-      'actual_end_time',
-      'actual_end_date',
-    ]
-
-    const data: any = { ...validatedData }
-    dateFields.forEach((field) => {
-      if (data[field]) {
-        data[field] = new Date(data[field])
-      }
-    })
+    const json = await request.json()
+    const validatedData = taskUpdateSchema.parse(json)
 
     const task = await prisma.task.update({
-      where: { task_id: taskId },
-      data,
+      where: {
+        task_id: parseInt(params.taskId),
+      },
+      data: {
+        ...validatedData,
+        updated_by: session.user.id,
+      },
       include: {
-        Project: true,
-        Resource: true,
-        Department: true,
+        Project: {
+          select: {
+            name: true,
+          },
+        },
+        Resource: {
+          select: {
+            name: true,
+            Department: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
+        Department: {
+          select: {
+            name: true,
+          },
+        },
       },
     })
 
-    return Response.json(successResponse(task))
+    await logActivity({
+      entity_type: 'task',
+      entity_id: task.task_id,
+      action: 'update',
+      details: 'Task updated',
+      user_id: session.user.id,
+    })
+
+    return successResponse({ task })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return Response.json(
-        errorResponse(new ApiError('VALIDATION_ERROR', 'Invalid task data', error.errors)),
-        { status: 400 }
-      )
+      return errorResponse(error.errors[0].message, 400)
     }
-    return Response.json(errorResponse(error as Error), { status: 500 })
+    console.error('Error updating task:', error)
+    return errorResponse('Error updating task')
   }
 }
 
 /**
  * DELETE /api/tasks/[taskId]
- * Delete a single task
+ * Delete a specific task
  */
 export async function DELETE(
-  req: NextRequest,
+  request: NextRequest,
   { params }: { params: { taskId: string } }
 ) {
   try {
-    const session = await getServerSession()
+    const session = await getServerSession(authOptions)
     if (!session) {
-      throw new ApiError('UNAUTHORIZED', 'You must be logged in to access this resource')
+      return errorResponse('Unauthorized', 401)
     }
 
-    const taskId = parseInt(params.taskId)
-    if (isNaN(taskId)) {
-      throw new ApiError('INVALID_ID', 'Invalid task ID')
-    }
-
-    await prisma.task.delete({
-      where: { task_id: taskId },
+    const task = await prisma.task.delete({
+      where: {
+        task_id: parseInt(params.taskId),
+      },
     })
 
-    return Response.json(successResponse({ message: 'Task deleted successfully' }))
+    await logActivity({
+      entity_type: 'task',
+      entity_id: task.task_id,
+      action: 'delete',
+      details: 'Task deleted',
+      user_id: session.user.id,
+    })
+
+    return successResponse({ message: 'Task deleted successfully' })
   } catch (error) {
-    if (error instanceof ApiError && error.code === 'NOT_FOUND') {
-      return Response.json(errorResponse(error), { status: 404 })
-    }
-    return Response.json(errorResponse(error as Error), { status: 500 })
+    console.error('Error deleting task:', error)
+    return errorResponse('Error deleting task')
   }
 } 
