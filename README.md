@@ -1,36 +1,102 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Project Management System Template
 
-## Getting Started
+A Next.js 14 project template with built-in user authentication, role management, and project tracking features.
 
-First, run the development server:
+## Features
+- User authentication with PIN-based login
+- Role-based access control (ADMIN, STAFF, PROJECT_MGT, CEO)
+- Resource management
+- Project tracking
+- Task management
+- Department organization
+- Workflow management
 
+## Quick Start
+
+1. Create a new project using this template:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Clone this repository
+git clone https://github.com/yourusername/SI_Ware_fresh.git my-new-project
+
+# Navigate to project directory
+cd my-new-project
+
+# Run the setup script
+chmod +x setup.sh
+./setup.sh my-new-project
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Configure your environment:
+```bash
+# Copy the example environment file
+cp .env.example .env
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+# Update the .env file with your database credentials
+DATABASE_URL="postgresql://username:password@localhost:5432/your_database_name"
+NEXTAUTH_SECRET="your-secret-here"
+NEXTAUTH_URL="http://localhost:3000"
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+3. Initialize the database:
+```bash
+# Generate Prisma client
+npx prisma generate
 
-## Learn More
+# Run migrations
+npx prisma migrate dev
 
-To learn more about Next.js, take a look at the following resources:
+# Seed the database
+npx prisma db seed
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+4. Start the development server:
+```bash
+npm run dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Default Admin Credentials
+- Username: admin
+- Email: admin@example.com
+- PIN: 1234
 
-## Deploy on Vercel
+## Database Schema
+- Users (Authentication & Role Management)
+- Resources (Team Members)
+- Projects
+- Tasks
+- Departments
+- Workflows
+- WorkflowTasks
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Available Scripts
+- `npm run dev`: Start development server
+- `npm run build`: Build for production
+- `npm run start`: Start production server
+- `npm run lint`: Run linter
+- `npx prisma studio`: Open Prisma database UI
+- `npx prisma migrate reset`: Reset database
+- `npx prisma db seed`: Seed database
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Technology Stack
+- Next.js 14
+- TypeScript
+- Prisma (PostgreSQL)
+- NextAuth.js
+- Tailwind CSS
+- shadcn/ui
+
+## Project Structure
+```
+├── app/                 # Next.js app directory
+├── components/          # React components
+├── lib/                 # Utility functions and configurations
+├── prisma/             # Database schema and migrations
+├── public/             # Static assets
+└── styles/             # Global styles
+```
+
+## Contributing
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+[MIT](LICENSE)
