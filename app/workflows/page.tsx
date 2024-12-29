@@ -32,14 +32,25 @@ export const metadata: Metadata = {
 }
 
 async function getWorkflows() {
-  return prisma.workflow.findMany({
-    include: {
-      WorkflowTask: true,
-    },
-    orderBy: {
-      created_at: 'desc',
-    },
-  })
+  try {
+    return await prisma.workflow.findMany({
+      include: {
+        steps: true,
+        user_creator: {
+          select: {
+            username: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: {
+        created_at: 'desc',
+      },
+    })
+  } catch (error) {
+    console.error('Error fetching workflows:', error)
+    return []
+  }
 }
 
 export default async function WorkflowsPage() {
@@ -66,7 +77,7 @@ export default async function WorkflowsPage() {
             <CardHeader>
               <CardTitle>Workflow Templates</CardTitle>
               <CardDescription>
-                A list of all workflow templates and their tasks
+                A list of all workflow templates and their steps
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -75,36 +86,49 @@ export default async function WorkflowsPage() {
                   <TableRow>
                     <TableHead>Name</TableHead>
                     <TableHead>Description</TableHead>
-                    <TableHead>Tasks</TableHead>
+                    <TableHead>Steps</TableHead>
+                    <TableHead>Created By</TableHead>
                     <TableHead>Created</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {workflows.map((workflow) => (
-                    <TableRow key={workflow.workflow_id}>
-                      <TableCell className="font-medium">
-                        {workflow.name}
-                      </TableCell>
-                      <TableCell>
-                        {workflow.description || 'No description'}
-                      </TableCell>
-                      <TableCell>{workflow.WorkflowTask.length}</TableCell>
-                      <TableCell>
-                        {format(workflow.created_at, 'MMM d, yyyy')}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Button variant="outline" size="sm">
-                            Edit
-                          </Button>
-                          <Button variant="outline" size="sm">
-                            Clone
-                          </Button>
-                        </div>
+                  {workflows.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={6}
+                        className="h-24 text-center text-muted-foreground"
+                      >
+                        No workflows found. Create your first workflow template.
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    workflows.map((workflow) => (
+                      <TableRow key={workflow.workflow_id}>
+                        <TableCell className="font-medium">
+                          {workflow.name}
+                        </TableCell>
+                        <TableCell>
+                          {workflow.description || 'No description'}
+                        </TableCell>
+                        <TableCell>{workflow.steps.length}</TableCell>
+                        <TableCell>{workflow.user_creator.username}</TableCell>
+                        <TableCell>
+                          {format(workflow.created_at, 'MMM d, yyyy')}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Button variant="outline" size="sm">
+                              Edit
+                            </Button>
+                            <Button variant="outline" size="sm">
+                              Clone
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
@@ -119,22 +143,31 @@ export default async function WorkflowsPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {workflows.slice(0, 5).map((workflow) => (
-                  <div
-                    key={workflow.workflow_id}
-                    className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0"
-                  >
-                    <div>
-                      <p className="font-medium">{workflow.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {workflow.description || 'No description'}
-                      </p>
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      {format(workflow.created_at, 'MMM d, yyyy')}
-                    </div>
+                {workflows.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-8">
+                    No recent activity
                   </div>
-                ))}
+                ) : (
+                  workflows.slice(0, 5).map((workflow) => (
+                    <div
+                      key={workflow.workflow_id}
+                      className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0"
+                    >
+                      <div>
+                        <p className="font-medium">{workflow.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {workflow.description || 'No description'}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Created by {workflow.user_creator.username}
+                        </p>
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {format(workflow.created_at, 'MMM d, yyyy')}
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
