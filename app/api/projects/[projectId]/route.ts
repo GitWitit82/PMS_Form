@@ -2,20 +2,19 @@
  * Individual Project API Routes
  * Handles operations for single projects
  */
-import { NextRequest } from 'next/server'
 import { z } from 'zod'
-import { prisma } from '@/lib/prisma'
-import { successResponse, errorResponse, ApiError } from '@/lib/api-response'
 import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
+import { successResponse, errorResponse } from '@/lib/api-response'
 
-// Validation schema for updating projects
 const projectUpdateSchema = z.object({
   name: z.string().min(1, 'Project name is required').optional(),
   description: z.string().optional(),
   customer_id: z.number().optional(),
-  start_date: z.string().optional(),
-  end_date: z.string().optional(),
-  status: z.enum(['Not Started', 'In Progress', 'Completed', 'On Hold']).optional(),
+  start_date: z.string().datetime().optional().nullable(),
+  end_date: z.string().datetime().optional().nullable(),
+  status: z.enum(['Not Started', 'In Progress', 'On Hold', 'Completed', 'Cancelled']).optional(),
 })
 
 /**
@@ -23,43 +22,56 @@ const projectUpdateSchema = z.object({
  * Get a single project by ID
  */
 export async function GET(
-  req: NextRequest,
+  request: Request,
   { params }: { params: { projectId: string } }
 ) {
   try {
-    const session = await getServerSession()
-    if (!session) {
-      throw new ApiError('UNAUTHORIZED', 'You must be logged in to access this resource')
+    const session = await getServerSession(authOptions)
+    if (!session?.user) {
+      return errorResponse(401, 'Unauthorized')
     }
 
     const projectId = parseInt(params.projectId)
     if (isNaN(projectId)) {
-      throw new ApiError('INVALID_ID', 'Invalid project ID')
+      return errorResponse(400, 'Invalid project ID')
     }
 
     const project = await prisma.project.findUnique({
       where: { project_id: projectId },
       include: {
-        Customer: true,
+        Customer: {
+          select: {
+            name: true,
+            email: true,
+            phone: true,
+          },
+        },
         Task: {
-          include: {
-            Resource: true,
-            Department: true,
+          select: {
+            task_id: true,
+            name: true,
+            status: true,
+            Resource: {
+              select: {
+                name: true,
+              },
+            },
+          },
+          orderBy: {
+            created_at: 'desc',
           },
         },
       },
     })
 
     if (!project) {
-      throw new ApiError('NOT_FOUND', 'Project not found')
+      return errorResponse(404, 'Project not found')
     }
 
-    return Response.json(successResponse(project))
+    return successResponse(project)
   } catch (error) {
-    if (error instanceof ApiError && error.code === 'NOT_FOUND') {
-      return Response.json(errorResponse(error), { status: 404 })
-    }
-    return Response.json(errorResponse(error as Error), { status: 500 })
+    console.error('Error retrieving project:', error)
+    return errorResponse(500, 'Failed to retrieve project')
   }
 }
 
@@ -68,52 +80,70 @@ export async function GET(
  * Update a single project
  */
 export async function PATCH(
-  req: NextRequest,
+  request: Request,
   { params }: { params: { projectId: string } }
 ) {
   try {
-    const session = await getServerSession()
-    if (!session) {
-      throw new ApiError('UNAUTHORIZED', 'You must be logged in to access this resource')
+    const session = await getServerSession(authOptions)
+    if (!session?.user) {
+      return errorResponse(401, 'Unauthorized')
     }
 
     const projectId = parseInt(params.projectId)
     if (isNaN(projectId)) {
-      throw new ApiError('INVALID_ID', 'Invalid project ID')
+      return errorResponse(400, 'Invalid project ID')
     }
 
-    const body = await req.json()
+    const body = await request.json()
     const validatedData = projectUpdateSchema.parse(body)
+
+    // Convert dates if they exist
+    const updateData = {
+      ...validatedData,
+      start_date: validatedData.start_date
+        ? new Date(validatedData.start_date)
+        : undefined,
+      end_date: validatedData.end_date
+        ? new Date(validatedData.end_date)
+        : undefined,
+    }
 
     const project = await prisma.project.update({
       where: { project_id: projectId },
-      data: {
-        ...validatedData,
-        start_date: validatedData.start_date ? new Date(validatedData.start_date) : undefined,
-        end_date: validatedData.end_date ? new Date(validatedData.end_date) : undefined,
-      },
+      data: updateData,
       include: {
-        Customer: true,
+        Customer: {
+          select: {
+            name: true,
+            email: true,
+            phone: true,
+          },
+        },
         Task: {
-          include: {
-            Resource: true,
-            Department: true,
+          select: {
+            task_id: true,
+            name: true,
+            status: true,
+            Resource: {
+              select: {
+                name: true,
+              },
+            },
+          },
+          orderBy: {
+            created_at: 'desc',
           },
         },
       },
     })
 
-    return Response.json(successResponse(project))
+    return successResponse(project)
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return Response.json(
-        errorResponse(
-          new ApiError('VALIDATION_ERROR', 'Invalid project data', error.errors)
-        ),
-        { status: 400 }
-      )
+      return errorResponse(400, 'Invalid request data', error.errors)
     }
-    return Response.json(errorResponse(error as Error), { status: 500 })
+    console.error('Error updating project:', error)
+    return errorResponse(500, 'Failed to update project')
   }
 }
 
@@ -122,29 +152,27 @@ export async function PATCH(
  * Delete a single project
  */
 export async function DELETE(
-  req: NextRequest,
+  request: Request,
   { params }: { params: { projectId: string } }
 ) {
   try {
-    const session = await getServerSession()
-    if (!session) {
-      throw new ApiError('UNAUTHORIZED', 'You must be logged in to access this resource')
+    const session = await getServerSession(authOptions)
+    if (!session?.user) {
+      return errorResponse(401, 'Unauthorized')
     }
 
     const projectId = parseInt(params.projectId)
     if (isNaN(projectId)) {
-      throw new ApiError('INVALID_ID', 'Invalid project ID')
+      return errorResponse(400, 'Invalid project ID')
     }
 
     await prisma.project.delete({
       where: { project_id: projectId },
     })
 
-    return Response.json(successResponse({ message: 'Project deleted successfully' }))
+    return successResponse({ message: 'Project deleted successfully' })
   } catch (error) {
-    if (error instanceof ApiError && error.code === 'NOT_FOUND') {
-      return Response.json(errorResponse(error), { status: 404 })
-    }
-    return Response.json(errorResponse(error as Error), { status: 500 })
+    console.error('Error deleting project:', error)
+    return errorResponse(500, 'Failed to delete project')
   }
 } 
