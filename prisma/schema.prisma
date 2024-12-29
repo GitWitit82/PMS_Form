@@ -108,6 +108,7 @@ model User {
   created_at DateTime  @default(now())
   updated_at DateTime  @default(now())
   resource   Resource?
+  Activity   Activity[]
 
   @@map("users")
 }
@@ -131,4 +132,21 @@ model WorkflowTask {
   scheduled_end_date   DateTime?
   priority             String?
   Workflow             Workflow  @relation(fields: [workflow_id], references: [workflow_id], onDelete: Cascade)
+}
+
+model Activity {
+  activity_id Int      @id @default(autoincrement())
+  user_id     Int
+  type        String
+  entity_type String
+  entity_id   Int
+  action      String
+  details     Json     @default("{}")
+  created_at  DateTime @default(now())
+  user        User     @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([type])
+  @@index([entity_type, entity_id])
+  @@index([created_at])
 }
