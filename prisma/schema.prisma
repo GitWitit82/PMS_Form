@@ -1,0 +1,134 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Contact {
+  contact_id  Int      @id @default(autoincrement())
+  customer_id Int
+  name        String
+  email       String?
+  phone       String?
+  role        String?
+  created_at  DateTime @default(now())
+  Customer    Customer @relation(fields: [customer_id], references: [customer_id], onDelete: Cascade)
+}
+
+model Customer {
+  customer_id Int       @id @default(autoincrement())
+  name        String
+  email       String?
+  phone       String?
+  created_at  DateTime  @default(now())
+  Contact     Contact[]
+  Project     Project[]
+}
+
+model Department {
+  department_id Int        @id @default(autoincrement())
+  name          String     @unique
+  description   String?
+  created_at    DateTime   @default(now())
+  Resource      Resource[]
+  Task          Task[]
+}
+
+model Project {
+  project_id  Int       @id @default(autoincrement())
+  customer_id Int
+  name        String
+  description String?
+  start_date  DateTime?
+  end_date    DateTime?
+  status      String    @default("Not Started")
+  created_at  DateTime  @default(now())
+  Customer    Customer  @relation(fields: [customer_id], references: [customer_id], onDelete: Cascade)
+  Task        Task[]
+}
+
+model Resource {
+  resource_id   Int        @id @default(autoincrement())
+  department_id Int
+  name          String
+  email         String?    @unique
+  phone         String?
+  is_active     Boolean    @default(true)
+  created_at    DateTime   @default(now())
+  user_id       Int?       @unique
+  Department    Department @relation(fields: [department_id], references: [department_id], onDelete: Cascade)
+  Task          Task[]
+  user          User?      @relation(fields: [user_id], references: [user_id])
+}
+
+model Task {
+  task_id                Int         @id @default(autoincrement())
+  project_id             Int
+  resource_id            Int?
+  department_id          Int?
+  name                   String
+  description            String?
+  scheduled_start_time   DateTime?
+  scheduled_start_date   DateTime?
+  scheduled_end_time     DateTime?
+  scheduled_end_date     DateTime?
+  actual_start_time      DateTime?
+  actual_start_date      DateTime?
+  actual_end_time        DateTime?
+  actual_end_date        DateTime?
+  delay_duration         String?
+  delay_reason           String?
+  delay_status           String?
+  completion_status      String?
+  priority               String?
+  status                 String      @default("Pending")
+  last_status_updated_at DateTime?
+  created_at             DateTime    @default(now())
+  Department             Department? @relation(fields: [department_id], references: [department_id])
+  Project                Project     @relation(fields: [project_id], references: [project_id], onDelete: Cascade)
+  Resource               Resource?   @relation(fields: [resource_id], references: [resource_id])
+}
+
+enum UserRole {
+  ADMIN
+  STAFF
+  PROJECT_MGT
+  CEO
+}
+
+model User {
+  user_id    Int       @id @default(autoincrement())
+  username   String    @unique
+  email      String    @unique
+  pin_hash   String
+  role       UserRole  @default(STAFF)
+  created_at DateTime  @default(now())
+  updated_at DateTime  @default(now())
+  resource   Resource?
+
+  @@map("users")
+}
+
+model Workflow {
+  workflow_id  Int            @id @default(autoincrement())
+  name         String
+  description  String?
+  created_at   DateTime       @default(now())
+  WorkflowTask WorkflowTask[]
+}
+
+model WorkflowTask {
+  workflow_task_id     Int       @id @default(autoincrement())
+  workflow_id          Int
+  name                 String
+  description          String?
+  scheduled_start_time DateTime?
+  scheduled_start_date DateTime?
+  scheduled_end_time   DateTime?
+  scheduled_end_date   DateTime?
+  priority             String?
+  Workflow             Workflow  @relation(fields: [workflow_id], references: [workflow_id], onDelete: Cascade)
+}
