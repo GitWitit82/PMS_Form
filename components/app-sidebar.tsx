@@ -1,101 +1,136 @@
+/**
+ * AppSidebar: Main application sidebar component
+ * Provides navigation and user controls
+ */
 'use client'
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { useSession } from "next-auth/react"
-import { cn } from "@/lib/utils"
-import { Sidebar, useSidebar } from "@/components/ui/sidebar"
-import { ThemeToggle } from "@/components/theme-toggle"
-import { 
-  LayoutDashboard, 
-  Users, 
-  FileText, 
+import React from 'react'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { useSession } from 'next-auth/react'
+import {
+  ChevronLeft,
+  LayoutDashboard,
+  FolderKanban,
+  Users,
   Settings,
-  LogOut,
-  Menu 
-} from "lucide-react"
-import { signOut } from "next-auth/react"
+  FileText,
+  Workflow,
+  Menu,
+} from 'lucide-react'
+
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { useWorkspace } from '@/providers/workspace-provider'
+import { ThemeToggle } from './theme-toggle'
+import { UserRole } from '@prisma/client'
+
+const navigation = [
+  {
+    name: 'Dashboard',
+    href: '/dashboard',
+    icon: LayoutDashboard,
+    roles: [UserRole.ADMIN, UserRole.STAFF, UserRole.PROJECT_MGT, UserRole.CEO],
+  },
+  {
+    name: 'Projects',
+    href: '/projects',
+    icon: FolderKanban,
+    roles: [UserRole.ADMIN, UserRole.STAFF, UserRole.PROJECT_MGT, UserRole.CEO],
+  },
+  {
+    name: 'Workflows',
+    href: '/workflows',
+    icon: Workflow,
+    roles: [UserRole.ADMIN, UserRole.PROJECT_MGT, UserRole.CEO],
+  },
+  {
+    name: 'Forms',
+    href: '/forms',
+    icon: FileText,
+    roles: [UserRole.ADMIN, UserRole.PROJECT_MGT],
+  },
+  {
+    name: 'Users',
+    href: '/admin/users',
+    icon: Users,
+    roles: [UserRole.ADMIN],
+  },
+  {
+    name: 'Settings',
+    href: '/settings',
+    icon: Settings,
+    roles: [UserRole.ADMIN, UserRole.CEO],
+  },
+]
 
 export function AppSidebar() {
   const pathname = usePathname()
   const { data: session } = useSession()
-  const { isOpen, setIsOpen } = useSidebar()
+  const { state: { sidebarOpen }, toggleSidebar } = useWorkspace()
 
-  const isAdmin = session?.user?.role === "ADMIN"
+  const userRole = session?.user?.role as UserRole
 
-  const links = [
-    {
-      href: "/dashboard",
-      label: "Dashboard",
-      icon: LayoutDashboard,
-      active: pathname === "/dashboard"
-    },
-    // Only show User Management for admin users
-    ...(isAdmin ? [{
-      href: "/admin/users",
-      label: "User Management",
-      icon: Users,
-      active: pathname === "/admin/users"
-    }] : []),
-    {
-      href: "/projects",
-      label: "Projects",
-      icon: FileText,
-      active: pathname === "/projects"
-    },
-    {
-      href: "/settings",
-      label: "Settings",
-      icon: Settings,
-      active: pathname === "/settings"
-    }
-  ]
+  const filteredNavigation = navigation.filter((item) =>
+    item.roles.includes(userRole)
+  )
 
   return (
-    <>
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="fixed top-4 left-4 z-50 lg:hidden"
-      >
-        <Menu className="h-6 w-6" />
-      </button>
-      <Sidebar>
-        <div className="flex flex-col h-full">
-          <div className="space-y-4 py-4 flex-1">
-            <div className="px-3 py-2">
-              <h2 className="mb-2 px-4 text-lg font-semibold">
-                Project Manager
-              </h2>
-              <div className="space-y-1">
-                {links.map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className={cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-2 text-gray-500 transition-all hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-50",
-                      link.active && "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-50"
-                    )}
-                  >
-                    <link.icon className="h-4 w-4" />
-                    {link.label}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </div>
+    <div
+      className={cn(
+        'fixed inset-y-0 left-0 z-50 flex flex-col border-r bg-background transition-all duration-300 ease-in-out',
+        sidebarOpen ? 'w-64' : 'w-16'
+      )}
+    >
+      <div className="flex h-16 items-center justify-between px-4">
+        {sidebarOpen && (
+          <Link href="/dashboard" className="text-xl font-bold">
+            EPM
+          </Link>
+        )}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="ml-auto"
+          onClick={toggleSidebar}
+        >
+          {sidebarOpen ? <ChevronLeft className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+        </Button>
+      </div>
 
-          <div className="border-t p-4 space-y-4">
-            <ThemeToggle />
-            <button
-              onClick={() => signOut({ callbackUrl: '/auth/signin' })}
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-gray-500 transition-all hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-50"
+      <nav className="flex-1 space-y-1 px-2 py-4">
+        {filteredNavigation.map((item) => {
+          const Icon = item.icon
+          return (
+            <Link
+              key={item.name}
+              href={item.href}
+              className={cn(
+                'flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                pathname === item.href
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                !sidebarOpen && 'justify-center'
+              )}
             >
-              <LogOut className="h-4 w-4" />
-              Sign Out
-            </button>
-          </div>
+              <Icon className={cn('h-5 w-5', sidebarOpen && 'mr-3')} />
+              {sidebarOpen && <span>{item.name}</span>}
+            </Link>
+          )
+        })}
+      </nav>
+
+      <div className="border-t p-4">
+        <div className="flex items-center justify-between">
+          {sidebarOpen && (
+            <div className="flex flex-col space-y-1">
+              <p className="text-sm font-medium">{session?.user?.username}</p>
+              <p className="text-xs text-muted-foreground">{session?.user?.role}</p>
+            </div>
+          )}
+          <ThemeToggle />
         </div>
-      </Sidebar>
-    </>
+      </div>
+    </div>
   )
 }

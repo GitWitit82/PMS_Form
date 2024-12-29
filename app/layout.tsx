@@ -1,37 +1,26 @@
 import type { Metadata } from "next";
-import localFont from "next/font/local";
+import { GeistSans } from "geist/font/sans";
+import { GeistMono } from "geist/font/mono";
 import "./globals.css";
-import { ThemeProvider } from "@/providers/theme-provider"
-import { SessionProvider } from "@/providers/session-provider"
-import { SidebarProvider } from "@/components/ui/sidebar"
-import { AppSidebar } from "@/components/app-sidebar"
-import { cn } from "@/lib/utils"
-
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-  weight: "100 900",
-});
-
-const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
-  variable: "--font-geist-mono",
-  weight: "100 900",
-});
+import { ThemeProvider } from "@/providers/theme-provider";
+import { WorkspaceProvider } from "@/providers/workspace-provider";
+import { FormProvider } from "@/providers/form-provider";
+import { WorkflowProvider } from "@/providers/workflow-provider";
+import { SessionProvider } from "@/providers/session-provider";
 
 export const metadata: Metadata = {
-  title: "Project Manager",
-  description: "Project Management Application",
+  title: "Enterprise Project Management",
+  description: "A comprehensive project management system with workflow automation",
 };
 
-interface RootLayoutProps {
-  children: React.ReactNode;
-}
-
-export default function RootLayout({ children }: RootLayoutProps) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${GeistSans.variable} ${GeistMono.variable} font-sans antialiased`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -39,14 +28,13 @@ export default function RootLayout({ children }: RootLayoutProps) {
           disableTransitionOnChange
         >
           <SessionProvider>
-            <SidebarProvider>
-              <div className="flex min-h-screen">
-                <AppSidebar />
-                <main className="flex-1 pl-64">
+            <WorkspaceProvider>
+              <FormProvider>
+                <WorkflowProvider>
                   {children}
-                </main>
-              </div>
-            </SidebarProvider>
+                </WorkflowProvider>
+              </FormProvider>
+            </WorkspaceProvider>
           </SessionProvider>
         </ThemeProvider>
       </body>

@@ -1,102 +1,119 @@
-# Project Management System Template
+# Enterprise Project Management System
 
-A Next.js 14 project template with built-in user authentication, role management, and project tracking features.
+A comprehensive project management system built with Next.js 14, featuring workflow automation, resource scheduling, and form management.
 
 ## Features
-- User authentication with PIN-based login
-- Role-based access control (ADMIN, STAFF, PROJECT_MGT, CEO)
-- Resource management
-- Project tracking
-- Task management
-- Department organization
-- Workflow management
 
-## Quick Start
+- 🔐 Multi-level Authentication & Authorization
+- 📊 Project & Resource Management
+- 🔄 Workflow Automation
+- 📝 Dynamic Form System
+- 📅 Resource Scheduling
+- 📈 Progress Tracking
+- 🎨 Theme Customization
+- 🔍 Comprehensive Search
+- 📱 Responsive Design
 
-1. Create a new project using this template:
+## Tech Stack
+
+- **Framework:** Next.js 14 (App Router)
+- **Language:** TypeScript
+- **Auth:** NextAuth.js
+- **Database:** PostgreSQL
+- **ORM:** Prisma
+- **UI Components:** shadcn/ui
+- **Styling:** TailwindCSS
+- **State Management:** React Context + Hooks
+- **Forms:** React Hook Form
+- **Validation:** Zod
+- **Charts:** Recharts (planned)
+
+## Prerequisites
+
+- Node.js 18+ 
+- PostgreSQL
+- npm
+
+## Getting Started
+
+1. Clone the repository:
 ```bash
-# Clone this repository
-git clone https://github.com/gitwitit82/SI_Ware_fresh.git my-new-project
-
-# Navigate to project directory
-cd my-new-project
-
-# Run the setup script
-chmod +x setup.sh
-./setup.sh my-new-project
+git clone [repository-url]
+cd enterprise-project-management
 ```
 
-2. Configure your environment:
+2. Install dependencies:
 ```bash
-# Copy the example environment file
-cp .env.example .env
+npm install
+```
 
-# Update the .env file with your database credentials
-DATABASE_URL="postgresql://username:password@localhost:5432/your_database_name"
-NEXTAUTH_SECRET="your-secret-here"
+3. Set up environment variables:
+```bash
+cp .env.example .env
+```
+
+4. Update the `.env` file with your configuration:
+```env
+DATABASE_URL="postgresql://user:password@localhost:5432/db_name"
+NEXTAUTH_SECRET="your-secret-key"
 NEXTAUTH_URL="http://localhost:3000"
 ```
 
-3. Initialize the database:
+5. Set up the database:
 ```bash
-# Generate Prisma client
 npx prisma generate
-
-# Run migrations
-npx prisma migrate dev
-
-# Seed the database
-npx prisma db seed
+npx prisma db push
+npm run prisma:seed
 ```
 
-4. Start the development server:
+6. Start the development server:
 ```bash
 npm run dev
 ```
 
-## Default Admin Credentials
-- Username: admin
-- Email: admin@example.com
-- PIN: 1234
+## Project Structure
 
-## Database Schema
-- Users (Authentication & Role Management)
-- Resources (Team Members)
-- Projects
-- Tasks
-- Departments
-- Workflows
-- WorkflowTasks
+```
+├── app/                      # Next.js 14 app directory
+│   ├── api/                  # API routes
+│   ├── auth/                 # Authentication pages
+│   ├── dashboard/           # Dashboard pages
+│   └── ...                  # Other app routes
+├── components/              # React components
+│   ├── ui/                  # UI components
+│   ├── forms/              # Form components
+│   └── ...                 # Other components
+├── lib/                    # Utility functions
+├── hooks/                  # Custom React hooks
+├── providers/             # React context providers
+├── prisma/                # Prisma schema and migrations
+└── types/                 # TypeScript type definitions
+```
 
 ## Available Scripts
-- `npm run dev`: Start development server
-- `npm run build`: Build for production
-- `npm run start`: Start production server
-- `npm run lint`: Run linter
-- `npx prisma studio`: Open Prisma database UI
-- `npx prisma migrate reset`: Reset database
-- `npx prisma db seed`: Seed database
 
-## Technology Stack
-- Next.js 14
-- TypeScript
-- Prisma (PostgreSQL)
-- NextAuth.js
-- Tailwind CSS
-- shadcn/ui
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm start` - Start production server
+- `npm run lint` - Run ESLint
+- `npm run prisma:seed` - Seed the database
 
-## Project Structure
-```
-├── app/                 # Next.js app directory
-├── components/          # React components
-├── lib/                 # Utility functions and configurations
-├── prisma/             # Database schema and migrations
-├── public/             # Static assets
-└── styles/             # Global styles
-```
+## Authentication
+
+The system uses NextAuth.js with the following roles:
+- Admin: Full system access
+- Manager: Department and project management
+- Supervisor: Project oversight and task management
+- Staff: Task execution and form completion
 
 ## Contributing
-Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
-[MIT](LICENSE)
+
+This project is licensed under the MIT License - see the LICENSE file for details.
