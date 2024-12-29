@@ -109,29 +109,125 @@ model User {
   updated_at DateTime  @default(now())
   resource   Resource?
   Activity   Activity[]
+  workflows_created Workflow[] @relation("WorkflowCreator")
+  workflows_updated Workflow[] @relation("WorkflowUpdater")
+  workflow_instances WorkflowInstance[]
 
   @@map("users")
 }
 
-model Workflow {
-  workflow_id  Int            @id @default(autoincrement())
-  name         String
-  description  String?
-  created_at   DateTime       @default(now())
-  WorkflowTask WorkflowTask[]
+enum WorkflowStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+  DEPRECATED
 }
 
-model WorkflowTask {
-  workflow_task_id     Int       @id @default(autoincrement())
-  workflow_id          Int
-  name                 String
-  description          String?
-  scheduled_start_time DateTime?
-  scheduled_start_date DateTime?
-  scheduled_end_time   DateTime?
-  scheduled_end_date   DateTime?
-  priority             String?
-  Workflow             Workflow  @relation(fields: [workflow_id], references: [workflow_id], onDelete: Cascade)
+enum WorkflowStepType {
+  TASK
+  APPROVAL
+  NOTIFICATION
+  CONDITION
+  INTEGRATION
+  CUSTOM
+}
+
+enum WorkflowTransitionType {
+  AUTOMATIC
+  MANUAL
+  CONDITIONAL
+  SCHEDULED
+}
+
+model Workflow {
+  workflow_id    Int            @id @default(autoincrement())
+  name          String
+  description   String?
+  version       Int            @default(1)
+  status        WorkflowStatus @default(DRAFT)
+  is_template   Boolean        @default(false)
+  created_at    DateTime       @default(now())
+  updated_at    DateTime       @updatedAt
+  created_by    Int
+  updated_by    Int
+  steps         WorkflowStep[]
+  instances     WorkflowInstance[]
+  user_creator  User          @relation("WorkflowCreator", fields: [created_by], references: [user_id])
+  user_updater  User          @relation("WorkflowUpdater", fields: [updated_by], references: [user_id])
+
+  @@index([status])
+  @@index([is_template])
+}
+
+model WorkflowStep {
+  step_id       Int              @id @default(autoincrement())
+  workflow_id   Int
+  name          String
+  description   String?
+  step_type     WorkflowStepType
+  order        Int
+  config       Json            @default("{}")
+  created_at    DateTime       @default(now())
+  updated_at    DateTime       @updatedAt
+  workflow      Workflow       @relation(fields: [workflow_id], references: [workflow_id], onDelete: Cascade)
+  transitions_from TransitionRule[] @relation("FromStep")
+  transitions_to   TransitionRule[] @relation("ToStep")
+  step_instances WorkflowStepInstance[]
+
+  @@index([workflow_id, order])
+  @@index([step_type])
+}
+
+model TransitionRule {
+  rule_id       Int                  @id @default(autoincrement())
+  from_step_id  Int
+  to_step_id    Int
+  name          String
+  description   String?
+  type          WorkflowTransitionType
+  conditions    Json                @default("{}")
+  config        Json                @default("{}")
+  created_at    DateTime           @default(now())
+  updated_at    DateTime           @updatedAt
+  from_step     WorkflowStep       @relation("FromStep", fields: [from_step_id], references: [step_id], onDelete: Cascade)
+  to_step       WorkflowStep       @relation("ToStep", fields: [to_step_id], references: [step_id], onDelete: Cascade)
+
+  @@index([from_step_id])
+  @@index([to_step_id])
+  @@index([type])
+}
+
+model WorkflowInstance {
+  instance_id   Int                    @id @default(autoincrement())
+  workflow_id   Int
+  status        String
+  context       Json                  @default("{}")
+  started_at    DateTime             @default(now())
+  completed_at  DateTime?
+  created_by    Int
+  workflow      Workflow             @relation(fields: [workflow_id], references: [workflow_id])
+  user_creator  User                 @relation(fields: [created_by], references: [user_id])
+  step_instances WorkflowStepInstance[]
+
+  @@index([workflow_id])
+  @@index([status])
+  @@index([created_by])
+}
+
+model WorkflowStepInstance {
+  instance_id   Int              @id @default(autoincrement())
+  workflow_instance_id Int
+  step_id       Int
+  status        String
+  result        Json            @default("{}")
+  started_at    DateTime       @default(now())
+  completed_at  DateTime?
+  workflow_instance WorkflowInstance @relation(fields: [workflow_instance_id], references: [instance_id], onDelete: Cascade)
+  step          WorkflowStep    @relation(fields: [step_id], references: [step_id])
+
+  @@index([workflow_instance_id])
+  @@index([step_id])
+  @@index([status])
 }
 
 model Activity {
