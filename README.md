@@ -16,7 +16,7 @@ A Next.js 14 project template with built-in user authentication, role management
 1. Create a new project using this template:
 ```bash
 # Clone this repository
-git clone https://github.com/YOUR_USERNAME/SI_Ware_fresh.git my-new-project
+git clone https://github.com/gitwitit82/SI_Ware_fresh.git my-new-project
 
 # Navigate to project directory
 cd my-new-project
