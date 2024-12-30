@@ -1,25 +1,39 @@
 /**
- * FormHeader Component
- * Displays the department-specific header for forms
+ * FormHeader: Header component for forms
+ * Displays form title with department-specific styling
  */
 'use client'
 
+import React from 'react'
 import { cn } from '@/lib/utils'
 
 interface FormHeaderProps {
   title: string
+  departmentName?: string
   departmentColor?: string
   className?: string
 }
 
-const defaultColor = 'bg-blue-700' // Default blue as shown in the image
-
-export function FormHeader({ title, departmentColor = defaultColor, className }: FormHeaderProps) {
+export function FormHeader({
+  title,
+  departmentName,
+  departmentColor = '#2563eb', // Default blue color
+  className,
+}: FormHeaderProps) {
   return (
-    <div className={cn('w-full px-6 py-4', departmentColor, className)}>
-      <h1 className="text-xl font-bold text-white tracking-wide">
+    <div
+      className={cn(
+        'flex flex-col space-y-1.5 rounded-t-lg p-6 text-white',
+        className
+      )}
+      style={{ backgroundColor: departmentColor }}
+    >
+      <h2 className="text-2xl font-semibold leading-none tracking-tight">
         {title}
-      </h1>
+      </h2>
+      {departmentName && (
+        <p className="text-sm text-white/80">{departmentName}</p>
+      )}
     </div>
   )
 } 

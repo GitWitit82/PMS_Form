@@ -33,6 +33,7 @@ model Department {
   department_id Int        @id @default(autoincrement())
   name          String     @unique
   description   String?
+  color         String     @default("#2563eb") // Default blue color
   created_at    DateTime   @default(now())
   Resource      Resource[]
   Task          Task[]

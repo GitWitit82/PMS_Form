@@ -99,7 +99,13 @@ const navigation = [
     name: 'Forms',
     href: '/forms',
     icon: FileText,
-    roles: [UserRole.ADMIN, UserRole.PROJECT_MGT],
+    roles: [UserRole.ADMIN, UserRole.STAFF, UserRole.PROJECT_MGT, UserRole.CEO],
+  },
+  {
+    name: 'Form Builder',
+    href: '/forms/builder',
+    icon: FileText,
+    roles: [UserRole.ADMIN, UserRole.PROJECT_MGT, UserRole.CEO],
   },
 
   // Administration
