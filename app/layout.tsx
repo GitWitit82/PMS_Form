@@ -6,6 +6,7 @@ import { WorkspaceProvider } from "@/providers/workspace-provider";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/providers/auth-provider";
+import { Toaster as SonnerToaster } from 'sonner';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -37,6 +38,7 @@ export default function RootLayout({
                 </main>
               </div>
               <Toaster />
+              <SonnerToaster />
             </WorkspaceProvider>
           </ThemeProvider>
         </AuthProvider>

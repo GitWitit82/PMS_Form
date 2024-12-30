@@ -1,177 +1,66 @@
 /**
- * Forms Page: Form template management
- * Create and manage dynamic form templates
+ * Forms Index Page
+ * Lists all available forms and checklists
  */
-import React from 'react'
-import { Metadata } from 'next'
-import { Plus } from 'lucide-react'
+'use client'
 
-import { ClientLayout } from '@/components/client-layout'
+import Link from 'next/link'
+import { FileText, ChevronRight, Plus } from 'lucide-react'
+import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs'
 
-export const metadata: Metadata = {
-  title: 'Forms | Enterprise Project Management',
-  description: 'Create and manage dynamic form templates',
-}
-
-// Example form templates (in a real app, these would come from a database)
-const formTemplates = [
+const AVAILABLE_FORMS = [
   {
-    id: '1',
-    name: 'Project Initiation',
-    description: 'Form for starting new projects',
-    category: 'project',
-    fields: 12,
-    lastModified: '2024-01-15',
+    id: 'lamination-trimming',
+    title: 'Lamination & Trimming Checklist',
+    description: 'Quality control checklist for lamination and trimming processes',
+    department: 'Production',
+    color: 'bg-blue-700',
   },
-  {
-    id: '2',
-    name: 'Task Assignment',
-    description: 'Assign tasks to team members',
-    category: 'task',
-    fields: 8,
-    lastModified: '2024-01-14',
-  },
-  {
-    id: '3',
-    name: 'Resource Request',
-    description: 'Request additional resources',
-    category: 'resource',
-    fields: 10,
-    lastModified: '2024-01-13',
-  },
+  // Add more forms here as they become available
 ]
 
 export default function FormsPage() {
   return (
-    <ClientLayout>
-      <div className="space-y-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Forms</h1>
-            <p className="text-muted-foreground">
-              Create and manage form templates
-            </p>
-          </div>
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            New Form
-          </Button>
+    <div className="container py-8">
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Forms & Checklists</h1>
+          <p className="text-muted-foreground">
+            Select a form or checklist to view and fill out
+          </p>
         </div>
-
-        <Tabs defaultValue="all" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="all">All Forms</TabsTrigger>
-            <TabsTrigger value="project">Project Forms</TabsTrigger>
-            <TabsTrigger value="task">Task Forms</TabsTrigger>
-            <TabsTrigger value="resource">Resource Forms</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="all" className="space-y-6">
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {formTemplates.map((template) => (
-                <Card key={template.id}>
-                  <CardHeader>
-                    <CardTitle>{template.name}</CardTitle>
-                    <CardDescription>{template.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Category:</span>
-                        <span className="font-medium capitalize">
-                          {template.category}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Fields:</span>
-                        <span className="font-medium">{template.fields}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">
-                          Last Modified:
-                        </span>
-                        <span className="font-medium">
-                          {template.lastModified}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-end space-x-2 pt-4">
-                        <Button variant="outline" size="sm">
-                          Edit
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          Preview
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="project" className="space-y-6">
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {formTemplates
-                .filter((t) => t.category === 'project')
-                .map((template) => (
-                  <Card key={template.id}>
-                    <CardHeader>
-                      <CardTitle>{template.name}</CardTitle>
-                      <CardDescription>{template.description}</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Fields:</span>
-                          <span className="font-medium">{template.fields}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">
-                            Last Modified:
-                          </span>
-                          <span className="font-medium">
-                            {template.lastModified}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-end space-x-2 pt-4">
-                          <Button variant="outline" size="sm">
-                            Edit
-                          </Button>
-                          <Button variant="outline" size="sm">
-                            Preview
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-            </div>
-          </TabsContent>
-
-          {/* Similar content for task and resource tabs */}
-          <TabsContent value="task" className="space-y-6">
-            {/* Task forms content */}
-          </TabsContent>
-
-          <TabsContent value="resource" className="space-y-6">
-            {/* Resource forms content */}
-          </TabsContent>
-        </Tabs>
+        <Link href="/forms/builder">
+          <Button>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Form
+          </Button>
+        </Link>
       </div>
-    </ClientLayout>
+
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {AVAILABLE_FORMS.map((form) => (
+          <Link key={form.id} href={`/forms/${form.id}`}>
+            <Card className="hover:bg-muted/50 transition-colors">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="h-10 w-10 rounded-full flex items-center justify-center bg-primary/10">
+                    <FileText className="h-5 w-5 text-primary" />
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <CardTitle className="mt-4">{form.title}</CardTitle>
+                <CardDescription>{form.description}</CardDescription>
+                <div className="mt-2">
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${form.color} text-white`}>
+                    {form.department}
+                  </span>
+                </div>
+              </CardHeader>
+            </Card>
+          </Link>
+        ))}
+      </div>
+    </div>
   )
 } 

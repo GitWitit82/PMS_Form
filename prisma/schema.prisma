@@ -26,6 +26,7 @@ model Customer {
   created_at  DateTime  @default(now())
   Contact     Contact[]
   Project     Project[]
+  forms       FormSubmission[]
 }
 
 model Department {
@@ -35,6 +36,7 @@ model Department {
   created_at    DateTime   @default(now())
   Resource      Resource[]
   Task          Task[]
+  forms         Form[]
 }
 
 model Project {
@@ -48,6 +50,7 @@ model Project {
   created_at  DateTime  @default(now())
   Customer    Customer  @relation(fields: [customer_id], references: [customer_id], onDelete: Cascade)
   Task        Task[]
+  forms       FormSubmission[]
 }
 
 model Resource {
@@ -109,6 +112,7 @@ model User {
   updated_at DateTime  @default(now())
   resource   Resource?
   Activity   Activity[]
+  forms      FormSubmission[]
 
   @@map("users")
 }
@@ -151,4 +155,50 @@ model WorkflowTask {
   stage                String?
   order                Int
   workflow             Workflow  @relation(fields: [workflow_id], references: [workflow_id], onDelete: Cascade)
+}
+
+model Form {
+  form_id       Int           @id @default(autoincrement())
+  title         String
+  department_id Int
+  description   String?
+  instructions  String?
+  created_at    DateTime      @default(now())
+  updated_at    DateTime      @updatedAt
+  department    Department    @relation(fields: [department_id], references: [department_id])
+  templates     FormTemplate[]
+  submissions   FormSubmission[]
+}
+
+model FormTemplate {
+  template_id   Int           @id @default(autoincrement())
+  form_id       Int
+  name          String
+  description   String?
+  fields        Json          // Stores field configurations
+  layout        Json          // Stores layout information
+  version       Int           @default(1)
+  is_active     Boolean       @default(true)
+  created_at    DateTime      @default(now())
+  updated_at    DateTime      @updatedAt
+  form          Form          @relation(fields: [form_id], references: [form_id], onDelete: Cascade)
+  submissions   FormSubmission[]
+}
+
+model FormSubmission {
+  submission_id Int           @id @default(autoincrement())
+  form_id       Int
+  template_id   Int
+  project_id    Int?
+  customer_id   Int?
+  submitted_by  Int          // User ID
+  data          Json         // Stores form data
+  status        String       @default("draft") // draft, submitted, approved, rejected
+  created_at    DateTime     @default(now())
+  updated_at    DateTime     @updatedAt
+  form          Form         @relation(fields: [form_id], references: [form_id])
+  template      FormTemplate @relation(fields: [template_id], references: [template_id])
+  project       Project?     @relation(fields: [project_id], references: [project_id])
+  customer      Customer?    @relation(fields: [customer_id], references: [customer_id])
+  user          User         @relation(fields: [submitted_by], references: [user_id])
 }
