@@ -1,10 +1,11 @@
 /**
  * FormBuilder Component
- * A component for creating and customizing forms
+ * A component for creating and editing forms
  */
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Plus, Trash2, GripVertical, Save } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -20,38 +21,98 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Card, CardContent } from '@/components/ui/card'
+import { toast } from 'sonner'
+
+interface Department {
+  department_id: number
+  name: string
+  description: string | null
+  color: string
+}
 
 interface FormField {
   id: string
   type: 'text' | 'textarea' | 'checkbox' | 'select'
   label: string
   placeholder?: string
-  options?: string[] // For select fields
+  options?: string[]
   required?: boolean
 }
 
 interface FormBuilderProps {
+  formId?: string // Optional form ID for editing
   onSave?: (formData: {
     title: string
     description: string
-    department: string
+    department_id: number
     fields: FormField[]
   }) => void
 }
 
-const DEPARTMENT_COLORS = {
-  'Production': 'bg-blue-700',
-  'Quality Control': 'bg-green-700',
-  'Engineering': 'bg-purple-700',
-  'Maintenance': 'bg-orange-700',
-  'Safety': 'bg-red-700',
-}
-
-export function FormBuilder({ onSave }: FormBuilderProps) {
+export function FormBuilder({ formId, onSave }: FormBuilderProps) {
+  const router = useRouter()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [department, setDepartment] = useState<string>('')
+  const [instructions, setInstructions] = useState('')
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState<string>('')
+  const [departments, setDepartments] = useState<Department[]>([])
   const [fields, setFields] = useState<FormField[]>([])
+  const [loading, setLoading] = useState(false)
+
+  // Fetch departments when component mounts
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        const response = await fetch('/api/departments')
+        if (!response.ok) throw new Error('Failed to fetch departments')
+        const data = await response.json()
+        setDepartments(data)
+      } catch (error) {
+        console.error('Error fetching departments:', error)
+        toast.error('Failed to load departments')
+      }
+    }
+    fetchDepartments()
+  }, [])
+
+  // Fetch form data if editing
+  useEffect(() => {
+    const fetchForm = async () => {
+      if (!formId) return
+
+      setLoading(true)
+      try {
+        const response = await fetch(`/api/forms/${formId}`)
+        if (!response.ok) throw new Error('Failed to fetch form')
+        const data = await response.json()
+        
+        setTitle(data.title)
+        setDescription(data.description || '')
+        setInstructions(data.instructions || '')
+        setSelectedDepartmentId(data.department.department_id.toString())
+        
+        // Transform template fields to match FormField interface
+        if (data.templates[0]?.fields.items) {
+          const transformedFields = data.templates[0].fields.items.map((item: any) => ({
+            id: item.id.toString(),
+            type: item.type,
+            label: item.label,
+            required: item.required,
+            placeholder: item.placeholder,
+            options: item.options
+          }))
+          setFields(transformedFields)
+        }
+      } catch (error) {
+        console.error('Error fetching form:', error)
+        toast.error('Failed to load form')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchForm()
+  }, [formId])
 
   const addField = () => {
     const newField: FormField = {
@@ -74,16 +135,56 @@ export function FormBuilder({ onSave }: FormBuilderProps) {
     setFields(fields.filter(field => field.id !== id))
   }
 
-  const handleSave = () => {
-    if (onSave) {
-      onSave({
+  const handleSave = async () => {
+    if (!title || !selectedDepartmentId) {
+      toast.error('Please fill in all required fields')
+      return
+    }
+
+    try {
+      setLoading(true)
+      const formData = {
         title,
         description,
-        department,
-        fields,
+        instructions,
+        department_id: parseInt(selectedDepartmentId),
+        fields: fields.map((field, index) => ({
+          ...field,
+          id: index + 1 // Reset IDs to be sequential
+        }))
+      }
+
+      const url = formId ? `/api/forms/${formId}` : '/api/forms'
+      const method = formId ? 'PUT' : 'POST'
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
       })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.message || 'Failed to save form')
+      }
+
+      toast.success(`Form ${formId ? 'updated' : 'created'} successfully`)
+      router.push('/forms')
+      router.refresh()
+    } catch (error) {
+      console.error('Error saving form:', error)
+      toast.error('Failed to save form')
+    } finally {
+      setLoading(false)
     }
   }
+
+  // Get selected department details
+  const selectedDepartment = departments.find(
+    d => d.department_id.toString() === selectedDepartmentId
+  )
 
   const formContent = (
     <div className="space-y-6">
@@ -95,16 +196,23 @@ export function FormBuilder({ onSave }: FormBuilderProps) {
             </div>
             <div className="ml-8 space-y-4">
               <div className="flex items-center justify-between">
-                <div className="grid gap-2 flex-1 mr-4">
-                  <Label>Field Label</Label>
-                  <Input
-                    value={field.label}
-                    onChange={(e) => updateField(field.id, { label: e.target.value })}
-                    placeholder="Enter field label"
-                  />
-                </div>
-                <div className="grid gap-2 w-[180px] mr-4">
-                  <Label>Field Type</Label>
+                <Input
+                  value={field.label}
+                  onChange={(e) => updateField(field.id, { label: e.target.value })}
+                  placeholder="Field label"
+                  className="flex-1 mr-2"
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => removeField(field.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <Label>Type</Label>
                   <Select
                     value={field.type}
                     onValueChange={(value: FormField['type']) => 
@@ -122,42 +230,21 @@ export function FormBuilder({ onSave }: FormBuilderProps) {
                     </SelectContent>
                   </Select>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="self-end"
-                  onClick={() => removeField(field.id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-
-              <div className="grid gap-2">
-                <Label>Placeholder</Label>
-                <Input
-                  value={field.placeholder}
-                  onChange={(e) => updateField(field.id, { placeholder: e.target.value })}
-                  placeholder="Enter placeholder text"
-                />
-              </div>
-
-              {field.type === 'select' && (
-                <div className="grid gap-2">
-                  <Label>Options (one per line)</Label>
-                  <Textarea
-                    value={field.options?.join('\n')}
-                    onChange={(e) => updateField(field.id, { 
-                      options: e.target.value.split('\n').filter(Boolean)
-                    })}
-                    placeholder="Enter options (one per line)"
+                <div className="flex items-center gap-2">
+                  <Label>Required</Label>
+                  <input
+                    type="checkbox"
+                    checked={field.required}
+                    onChange={(e) => 
+                      updateField(field.id, { required: e.target.checked })
+                    }
                   />
                 </div>
-              )}
+              </div>
             </div>
           </CardContent>
         </Card>
       ))}
-
       <Button onClick={addField} variant="outline" className="w-full">
         <Plus className="h-4 w-4 mr-2" />
         Add Field
@@ -170,7 +257,8 @@ export function FormBuilder({ onSave }: FormBuilderProps) {
       header={
         <FormHeader 
           title={title || 'New Form'} 
-          departmentColor={department ? DEPARTMENT_COLORS[department as keyof typeof DEPARTMENT_COLORS] : undefined} 
+          departmentName={selectedDepartment?.name}
+          departmentColor={selectedDepartment?.color}
         />
       }
       projectInfo={
@@ -192,15 +280,29 @@ export function FormBuilder({ onSave }: FormBuilderProps) {
             />
           </div>
           <div className="grid gap-2">
+            <Label>Instructions</Label>
+            <Textarea
+              value={instructions}
+              onChange={(e) => setInstructions(e.target.value)}
+              placeholder="Enter form instructions"
+            />
+          </div>
+          <div className="grid gap-2">
             <Label>Department</Label>
-            <Select value={department} onValueChange={setDepartment}>
+            <Select value={selectedDepartmentId} onValueChange={setSelectedDepartmentId}>
               <SelectTrigger>
                 <SelectValue placeholder="Select department" />
               </SelectTrigger>
               <SelectContent>
-                {Object.keys(DEPARTMENT_COLORS).map((dept) => (
-                  <SelectItem key={dept} value={dept}>
-                    {dept}
+                {departments.map((dept) => (
+                  <SelectItem key={dept.department_id} value={dept.department_id.toString()}>
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="h-3 w-3 rounded-full"
+                        style={{ backgroundColor: dept.color }}
+                      />
+                      {dept.name}
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -210,9 +312,9 @@ export function FormBuilder({ onSave }: FormBuilderProps) {
       }
       footer={
         <div className="flex justify-end">
-          <Button onClick={handleSave} disabled={!title || !department}>
+          <Button onClick={handleSave} disabled={loading || !title || !selectedDepartmentId}>
             <Save className="h-4 w-4 mr-2" />
-            Save Form
+            {loading ? 'Saving...' : formId ? 'Update Form' : 'Save Form'}
           </Button>
         </div>
       }
