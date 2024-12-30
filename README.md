@@ -1,118 +1,111 @@
 # Enterprise Project Management System
 
-A comprehensive project management system built with Next.js 14, featuring workflow automation, resource scheduling, and form management.
+A comprehensive project management system built with Next.js, featuring workflow management, form handling, and project tracking capabilities.
 
 ## Features
 
-- 🔐 Multi-level Authentication & Authorization
-- 📊 Project & Resource Management
-- 🔄 Workflow Automation
-- 📝 Dynamic Form System
-- 📅 Resource Scheduling
-- 📈 Progress Tracking
-- 🎨 Theme Customization
-- 🔍 Comprehensive Search
-- 📱 Responsive Design
+### Project Management
+- Project creation and tracking
+- Resource allocation
+- Task management
+- Project status monitoring
 
-## Tech Stack
+### Workflow Management
+- Customizable workflow templates
+- Task dependencies
+- Stage-based progression
+- Visual workflow representation
 
-- **Framework:** Next.js 14 (App Router)
-- **Language:** TypeScript
-- **Auth:** NextAuth.js
-- **Database:** PostgreSQL
-- **ORM:** Prisma
-- **UI Components:** shadcn/ui
-- **Styling:** TailwindCSS
-- **State Management:** React Context + Hooks
-- **Forms:** React Hook Form
-- **Validation:** Zod
-- **Charts:** Recharts (planned)
+### Forms System
+- Dynamic form builder interface
+- Department-specific form templates
+- Multiple field types support:
+  - Text input
+  - Text area
+  - Checkbox
+  - Select dropdown
+- Form preview functionality
+- Project information integration
+- Customizable layouts
+- Department-specific styling
 
-## Prerequisites
+### User Management
+- Role-based access control
+- User authentication
+- Profile management
 
-- Node.js 18+ 
-- PostgreSQL
-- npm
+## Technical Stack
 
-## Getting Started
-
-1. Clone the repository:
-```bash
-git clone [repository-url]
-cd enterprise-project-management
-```
-
-2. Install dependencies:
-```bash
-npm install
-```
-
-3. Set up environment variables:
-```bash
-cp .env.example .env
-```
-
-4. Update the `.env` file with your configuration:
-```env
-DATABASE_URL="postgresql://user:password@localhost:5432/db_name"
-NEXTAUTH_SECRET="your-secret-key"
-NEXTAUTH_URL="http://localhost:3000"
-```
-
-5. Set up the database:
-```bash
-npx prisma generate
-npx prisma db push
-npm run prisma:seed
-```
-
-6. Start the development server:
-```bash
-npm run dev
-```
+- **Frontend**: Next.js 14, React, TypeScript
+- **UI Components**: Shadcn UI, Tailwind CSS
+- **Database**: PostgreSQL with Prisma ORM
+- **Authentication**: NextAuth.js
+- **State Management**: React Hooks
+- **Notifications**: Sonner Toast
 
 ## Project Structure
 
 ```
-├── app/                      # Next.js 14 app directory
-│   ├── api/                  # API routes
-│   ├── auth/                 # Authentication pages
-│   ├── dashboard/           # Dashboard pages
-│   └── ...                  # Other app routes
-├── components/              # React components
-│   ├── ui/                  # UI components
-│   ├── forms/              # Form components
-│   └── ...                 # Other components
-├── lib/                    # Utility functions
-├── hooks/                  # Custom React hooks
-├── providers/             # React context providers
-├── prisma/                # Prisma schema and migrations
-└── types/                 # TypeScript type definitions
+├── app/                    # Next.js app directory
+│   ├── api/               # API routes
+│   ├── forms/             # Form-related pages
+│   │   ├── builder/       # Form builder interface
+│   │   └── [id]/         # Dynamic form pages
+│   └── workflows/         # Workflow pages
+├── components/            # React components
+│   ├── forms/            # Form components
+│   │   ├── form-builder.tsx    # Form builder component
+│   │   ├── form-layout.tsx     # Form layout component
+│   │   └── form-header.tsx     # Form header component
+│   └── ui/               # UI components
+├── lib/                  # Utility functions
+├── prisma/              # Database schema and migrations
+└── providers/           # Context providers
 ```
 
-## Available Scripts
+## Getting Started
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm start` - Start production server
-- `npm run lint` - Run ESLint
-- `npm run prisma:seed` - Seed the database
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+3. Set up environment variables:
+   ```bash
+   cp .env.example .env
+   ```
+4. Run database migrations:
+   ```bash
+   npx prisma migrate dev
+   ```
+5. Start the development server:
+   ```bash
+   npm run dev
+   ```
 
-## Authentication
+## Recent Updates
 
-The system uses NextAuth.js with the following roles:
-- Admin: Full system access
-- Manager: Department and project management
-- Supervisor: Project oversight and task management
-- Staff: Task execution and form completion
+### Form Builder System (Latest)
+- Implemented dynamic form builder interface
+- Added support for multiple field types
+- Created reusable form layout components
+- Added department-specific styling
+- Integrated form preview functionality
+- Added form creation workflow with notifications
+
+### Standard Workflow Implementation
+- Added standard workflow templates
+- Implemented workflow task management
+- Created workflow visualization components
+- Added stage-based progression tracking
 
 ## Contributing
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
 ## License
 
