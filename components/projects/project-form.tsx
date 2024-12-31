@@ -1,3 +1,13 @@
+/**
+ * Project Form Component
+ * A form component for creating and managing projects with customer association and project type selection.
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * <ProjectForm onSuccess={() => console.log('Project created')} />
+ * ```
+ */
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -26,6 +36,10 @@ import {
 } from '@/components/ui/form'
 import { toast } from 'sonner'
 
+/**
+ * Zod schema for project validation
+ * Defines the structure and validation rules for project data
+ */
 const projectSchema = z.object({
   name: z.string().min(1, 'Project name is required'),
   vin: z.string().optional().default(''),
@@ -46,16 +60,36 @@ const projectSchema = z.object({
   status: z.string().default('Not Started'),
 })
 
+/**
+ * Customer interface
+ * Defines the structure for customer data used in the form
+ */
 interface Customer {
   customer_id: number
   name: string
 }
 
-export function ProjectForm({ onSuccess }: { onSuccess?: () => void }) {
+/**
+ * ProjectForm component props
+ */
+interface ProjectFormProps {
+  /** Callback function called after successful project creation */
+  onSuccess?: () => void
+}
+
+/**
+ * ProjectForm Component
+ * Renders a form for creating new projects with customer selection and project type options.
+ * 
+ * @param props - Component props
+ * @param props.onSuccess - Optional callback function called after successful project creation
+ */
+export function ProjectForm({ onSuccess }: ProjectFormProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [customers, setCustomers] = useState<Customer[]>([])
 
+  // Fetch customers on component mount
   useEffect(() => {
     async function fetchCustomers() {
       try {
@@ -74,6 +108,7 @@ export function ProjectForm({ onSuccess }: { onSuccess?: () => void }) {
     fetchCustomers()
   }, [])
 
+  // Initialize form with react-hook-form
   const form = useForm<z.infer<typeof projectSchema>>({
     resolver: zodResolver(projectSchema),
     defaultValues: {
@@ -94,6 +129,12 @@ export function ProjectForm({ onSuccess }: { onSuccess?: () => void }) {
     },
   })
 
+  /**
+   * Handle form submission
+   * Creates a new project with the provided data
+   * 
+   * @param data - Form data matching the project schema
+   */
   const onSubmit = async (data: z.infer<typeof projectSchema>) => {
     try {
       setLoading(true)
@@ -127,6 +168,7 @@ export function ProjectForm({ onSuccess }: { onSuccess?: () => void }) {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Project Name Field */}
           <FormField
             control={form.control}
             name="name"
@@ -141,6 +183,7 @@ export function ProjectForm({ onSuccess }: { onSuccess?: () => void }) {
             )}
           />
 
+          {/* Customer Selection Field */}
           <FormField
             control={form.control}
             name="customer_id"
@@ -172,6 +215,7 @@ export function ProjectForm({ onSuccess }: { onSuccess?: () => void }) {
             )}
           />
 
+          {/* Invoice Number Field */}
           <FormField
             control={form.control}
             name="invoice_number"
@@ -186,6 +230,7 @@ export function ProjectForm({ onSuccess }: { onSuccess?: () => void }) {
             )}
           />
 
+          {/* VIN Number Field */}
           <FormField
             control={form.control}
             name="vin"
@@ -200,6 +245,7 @@ export function ProjectForm({ onSuccess }: { onSuccess?: () => void }) {
             )}
           />
 
+          {/* Project Type Selection */}
           <div className="md:col-span-2">
             <Label className="text-xs font-medium">Project Type:</Label>
             <div className="mt-2 flex flex-wrap gap-4">
@@ -235,6 +281,7 @@ export function ProjectForm({ onSuccess }: { onSuccess?: () => void }) {
           </div>
         </div>
 
+        {/* Form Submit Button */}
         <div className="flex justify-end gap-4">
           <Button
             type="submit"
