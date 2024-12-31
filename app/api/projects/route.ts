@@ -7,6 +7,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { successResponse, errorResponse } from '@/lib/api-response'
+import { NextResponse } from 'next/server'
 
 const projectSchema = z.object({
   name: z.string().min(1, 'Project name is required'),
@@ -23,23 +24,17 @@ const projectSchema = z.object({
  * GET /api/projects
  * Get all projects with optional filtering
  */
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) {
-      return errorResponse(401, 'Unauthorized')
+      return new NextResponse(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401 }
+      )
     }
 
-    const { searchParams } = new URL(request.url)
-    const status = searchParams.get('status')
-    const customerId = searchParams.get('customerId')
-
-    const where: any = {}
-    if (status) where.status = status
-    if (customerId) where.customer_id = parseInt(customerId)
-
     const projects = await prisma.project.findMany({
-      where,
       include: {
         Customer: {
           select: {
@@ -58,10 +53,22 @@ export async function GET(request: Request) {
       },
     })
 
-    return successResponse(projects)
+    return new NextResponse(
+      JSON.stringify(projects),
+      {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    )
   } catch (error) {
-    console.error('Error retrieving projects:', error)
-    return errorResponse(500, 'Failed to retrieve projects')
+    console.error('Error fetching projects:', error)
+    return new NextResponse(
+      JSON.stringify({ error: 'Failed to fetch projects' }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    )
   }
 }
 

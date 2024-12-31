@@ -107,8 +107,12 @@ function SortableTableRow({ form }: { form: Form }) {
   }
 
   return (
-    <TableRow ref={setNodeRef} style={style}>
-      <TableCell>
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="grid grid-cols-[80px_2fr_2fr_120px_100px_80px_100px] gap-4 items-center p-4 border-b hover:bg-muted/50"
+    >
+      <div>
         <div className="flex items-center gap-2">
           <Button 
             variant="ghost" 
@@ -121,32 +125,32 @@ function SortableTableRow({ form }: { form: Form }) {
           </Button>
           {getFormIcon(form.type)}
         </div>
-      </TableCell>
-      <TableCell className="font-medium">
+      </div>
+      <div className="font-medium">
         {form.title}
-      </TableCell>
-      <TableCell className="text-muted-foreground">
+      </div>
+      <div className="text-muted-foreground">
         {form.description}
-      </TableCell>
-      <TableCell>
+      </div>
+      <div>
         <span 
           className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium text-white"
           style={{ backgroundColor: form.department.color }}
         >
           {form.department.name}
         </span>
-      </TableCell>
-      <TableCell>
+      </div>
+      <div>
         <Badge variant="secondary">
           {getFormTypeLabel(form.type)}
         </Badge>
-      </TableCell>
-      <TableCell className="text-center">
+      </div>
+      <div className="text-center">
         <Badge variant="outline">
           {form.page}
         </Badge>
-      </TableCell>
-      <TableCell>
+      </div>
+      <div>
         <div className="flex items-center gap-2">
           <Link href={`/forms/builder/${form.form_id}`}>
             <Button variant="ghost" size="icon">
@@ -159,8 +163,8 @@ function SortableTableRow({ form }: { form: Form }) {
             </Button>
           </Link>
         </div>
-      </TableCell>
-    </TableRow>
+      </div>
+    </div>
   )
 }
 
@@ -287,35 +291,31 @@ export default function FormsPage() {
         </div>
       ) : (
         <div className="border rounded-lg">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[80px]"></TableHead>
-                <TableHead>Title</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead className="w-[120px]">Department</TableHead>
-                <TableHead className="w-[100px]">Type</TableHead>
-                <TableHead className="w-[80px] text-center">Page</TableHead>
-                <TableHead className="w-[100px]">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
+          <div className="w-full">
+            <div className="grid grid-cols-[80px_2fr_2fr_120px_100px_80px_100px] gap-4 bg-muted p-3 text-sm font-medium">
+              <div></div>
+              <div>Title</div>
+              <div>Description</div>
+              <div>Department</div>
+              <div>Type</div>
+              <div className="text-center">Page</div>
+              <div>Actions</div>
+            </div>
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}
               onDragEnd={handleDragEnd}
             >
-              <TableBody>
-                <SortableContext
-                  items={forms.map(form => form.form_id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  {forms.map((form) => (
-                    <SortableTableRow key={form.form_id} form={form} />
-                  ))}
-                </SortableContext>
-              </TableBody>
+              <SortableContext
+                items={forms.map(form => form.form_id)}
+                strategy={verticalListSortingStrategy}
+              >
+                {forms.map((form) => (
+                  <SortableTableRow key={form.form_id} form={form} />
+                ))}
+              </SortableContext>
             </DndContext>
-          </Table>
+          </div>
         </div>
       )}
     </div>

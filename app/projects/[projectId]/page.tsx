@@ -1,116 +1,95 @@
-import { Metadata } from 'next'
-import { notFound } from 'next/navigation'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
-import { ProjectDetails } from '@/components/projects/project-details'
-import { ProjectEditButton } from '@/components/projects/project-edit-button'
+'use client'
 
-interface ProjectPageProps {
-  params: {
-    projectId: string
+import { useParams, useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { CreateTravelerButton } from '@/components/projects/create-traveler-button'
+import { toast } from 'sonner'
+
+interface Project {
+  project_id: number
+  name: string
+  description?: string
+  status: string
+  Customer: {
+    name: string
   }
 }
 
-export async function generateMetadata({
-  params,
-}: ProjectPageProps): Promise<Metadata> {
-  const project = await prisma.project.findUnique({
-    where: { project_id: parseInt(params.projectId) },
-    select: { name: true },
-  })
+export default function ProjectPage() {
+  const params = useParams()
+  const router = useRouter()
+  const projectId = parseInt(params.projectId as string)
+  const [project, setProject] = useState<Project | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  return {
-    title: project ? `${project.name} | Projects` : 'Project Not Found',
-    description: 'View and manage project details',
+  useEffect(() => {
+    async function fetchProject() {
+      try {
+        const response = await fetch(`/api/projects/${projectId}`)
+        if (!response.ok) {
+          throw new Error('Failed to fetch project')
+        }
+        const data = await response.json()
+        setProject(data)
+      } catch (error) {
+        console.error('Error fetching project:', error)
+        toast.error('Failed to load project details')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchProject()
+  }, [projectId])
+
+  if (loading) {
+    return (
+      <div className="container py-8">
+        <div className="h-8 bg-muted animate-pulse rounded mb-4 w-1/3" />
+        <div className="h-4 bg-muted animate-pulse rounded w-1/4" />
+      </div>
+    )
   }
-}
-
-async function getProject(projectId: number) {
-  return prisma.project.findUnique({
-    where: { project_id: projectId },
-    include: {
-      Customer: {
-        select: {
-          name: true,
-          email: true,
-          phone: true,
-        },
-      },
-      Task: {
-        select: {
-          task_id: true,
-          name: true,
-          status: true,
-          Resource: {
-            select: {
-              name: true,
-            },
-          },
-        },
-        orderBy: {
-          created_at: 'desc',
-        },
-      },
-    },
-  })
-}
-
-async function getCustomers() {
-  return prisma.customer.findMany({
-    select: {
-      customer_id: true,
-      name: true,
-    },
-    orderBy: {
-      name: 'asc',
-    },
-  })
-}
-
-/**
- * Project details page component
- * Displays detailed information about a specific project
- */
-export default async function ProjectPage({ params }: ProjectPageProps) {
-  const session = await getServerSession(authOptions)
-  if (!session?.user) {
-    return null
-  }
-
-  const projectId = parseInt(params.projectId)
-  if (isNaN(projectId)) {
-    notFound()
-  }
-
-  const [project, customers] = await Promise.all([
-    getProject(projectId),
-    getCustomers(),
-  ])
 
   if (!project) {
-    notFound()
+    return (
+      <div className="container py-8">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-2">Project Not Found</h1>
+          <p className="text-muted-foreground mb-4">
+            The project you're looking for doesn't exist or you don't have access to it.
+          </p>
+          <button
+            onClick={() => router.push('/projects')}
+            className="text-primary hover:underline"
+          >
+            Back to Projects
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <ProjectDetails
-        project={project}
-        onEdit={
-          <ProjectEditButton
-            project={{
-              project_id: project.project_id,
-              name: project.name,
-              description: project.description,
-              customer_id: project.Customer.customer_id,
-              start_date: project.start_date,
-              end_date: project.end_date,
-              status: project.status,
-            }}
-            customers={customers}
-          />
-        }
-      />
+    <div className="container py-8">
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">{project.name}</h1>
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <span>{project.Customer.name}</span>
+            <span>•</span>
+            <span className="capitalize">{project.status.toLowerCase()}</span>
+          </div>
+          {project.description && (
+            <p className="mt-4 text-muted-foreground">
+              {project.description}
+            </p>
+          )}
+        </div>
+        <div className="flex items-center gap-4">
+          <CreateTravelerButton projectId={projectId} />
+        </div>
+      </div>
     </div>
   )
 } 

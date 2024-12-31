@@ -1,8 +1,21 @@
+'use client'
+
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { format } from 'date-fns'
+import { useForm } from 'react-hook-form'
+import * as z from 'zod'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   Form,
   FormControl,
@@ -11,184 +24,100 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Calendar } from '@/components/ui/calendar'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
-import { cn } from '@/lib/utils'
-import { CalendarIcon } from 'lucide-react'
+import { toast } from 'sonner'
+import type { ProjectFormData } from '@/types/project'
 
-const projectFormSchema = z.object({
+const projectSchema = z.object({
   name: z.string().min(1, 'Project name is required'),
-  description: z.string().optional(),
-  customer_id: z.number({
-    required_error: 'Please select a customer',
+  vin: z.string().optional().default(''),
+  invoice_number: z.string().optional().default(''),
+  project_type: z.object({
+    full_wrap: z.boolean().default(false),
+    partial: z.boolean().default(false),
+    decals: z.boolean().default(false),
+    perf: z.boolean().default(false),
+    removal: z.boolean().default(false),
+    third_party: z.boolean().default(false),
+    bodywork: z.boolean().default(false),
   }),
-  start_date: z.date().optional(),
-  end_date: z.date().optional(),
-  status: z.enum(['Not Started', 'In Progress', 'On Hold', 'Completed', 'Cancelled']),
+  customer_id: z.number({
+    required_error: 'Customer is required',
+  }),
+  description: z.string().optional().default(''),
+  status: z.string().default('Not Started'),
 })
 
-type ProjectFormValues = z.infer<typeof projectFormSchema>
-
 interface ProjectFormProps {
-  initialData?: Partial<ProjectFormValues>
+  onSuccess?: () => void
   customers: Array<{ customer_id: number; name: string }>
-  onSubmit: (data: ProjectFormValues) => Promise<void>
-  isLoading?: boolean
 }
 
-/**
- * A form component for creating and editing projects
- */
-export function ProjectForm({
-  initialData,
-  customers,
-  onSubmit,
-  isLoading = false,
-}: ProjectFormProps) {
-  const [error, setError] = useState<string | null>(null)
+export function ProjectForm({ onSuccess, customers }: ProjectFormProps) {
+  const router = useRouter()
+  const [loading, setLoading] = useState(false)
 
-  const form = useForm<ProjectFormValues>({
-    resolver: zodResolver(projectFormSchema),
+  const form = useForm<z.infer<typeof projectSchema>>({
+    resolver: zodResolver(projectSchema),
     defaultValues: {
-      name: initialData?.name || '',
-      description: initialData?.description || '',
-      customer_id: initialData?.customer_id,
-      start_date: initialData?.start_date,
-      end_date: initialData?.end_date,
-      status: initialData?.status || 'Not Started',
+      name: '',
+      vin: '',
+      invoice_number: '',
+      project_type: {
+        full_wrap: false,
+        partial: false,
+        decals: false,
+        perf: false,
+        removal: false,
+        third_party: false,
+        bodywork: false,
+      },
+      description: '',
+      status: 'Not Started',
     },
   })
 
-  const handleSubmit = async (data: ProjectFormValues) => {
+  const onSubmit = async (data: z.infer<typeof projectSchema>) => {
     try {
-      setError(null)
-      await onSubmit(data)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      setLoading(true)
+      const response = await fetch('/api/projects', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.message || 'Failed to create project')
+      }
+
+      const result = await response.json()
+      toast.success('Project created successfully')
+      router.refresh()
+      onSuccess?.()
+      router.push(`/projects/${result.data.project_id}`)
+    } catch (error) {
+      console.error('Error creating project:', error)
+      toast.error(error instanceof Error ? error.message : 'Failed to create project')
+    } finally {
+      setLoading(false)
     }
   }
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Project Name</FormLabel>
-              <FormControl>
-                <Input {...field} placeholder="Enter project name" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Description</FormLabel>
-              <FormControl>
-                <Textarea
-                  {...field}
-                  placeholder="Enter project description"
-                  className="h-32"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="customer_id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Customer</FormLabel>
-              <Select
-                onValueChange={(value) => field.onChange(parseInt(value))}
-                defaultValue={field.value?.toString()}
-              >
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>PROJECT:</FormLabel>
                 <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a customer" />
-                  </SelectTrigger>
+                  <Input {...field} value={field.value || ''} />
                 </FormControl>
-                <SelectContent>
-                  {customers.map((customer) => (
-                    <SelectItem
-                      key={customer.customer_id}
-                      value={customer.customer_id.toString()}
-                    >
-                      {customer.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormField
-            control={form.control}
-            name="start_date"
-            render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel>Start Date</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          'w-full pl-3 text-left font-normal',
-                          !field.value && 'text-muted-foreground'
-                        )}
-                      >
-                        {field.value ? (
-                          format(field.value, 'PPP')
-                        ) : (
-                          <span>Pick a date</span>
-                        )}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={field.value}
-                      onSelect={field.onChange}
-                      disabled={(date) =>
-                        date < new Date('1900-01-01') ||
-                        (form.getValues('end_date')
-                          ? date > form.getValues('end_date')
-                          : false)
-                      }
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
                 <FormMessage />
               </FormItem>
             )}
@@ -196,84 +125,104 @@ export function ProjectForm({
 
           <FormField
             control={form.control}
-            name="end_date"
+            name="customer_id"
             render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel>End Date</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          'w-full pl-3 text-left font-normal',
-                          !field.value && 'text-muted-foreground'
-                        )}
+              <FormItem>
+                <FormLabel>CUSTOMER:</FormLabel>
+                <Select 
+                  onValueChange={(value) => field.onChange(parseInt(value))}
+                  defaultValue={field.value?.toString()}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a customer" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {customers.map((customer) => (
+                      <SelectItem 
+                        key={customer.customer_id} 
+                        value={customer.customer_id.toString()}
                       >
-                        {field.value ? (
-                          format(field.value, 'PPP')
-                        ) : (
-                          <span>Pick a date</span>
-                        )}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={field.value}
-                      onSelect={field.onChange}
-                      disabled={(date) =>
-                        date < new Date('1900-01-01') ||
-                        (form.getValues('start_date')
-                          ? date < form.getValues('start_date')
-                          : false)
-                      }
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
+                        {customer.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}
           />
+
+          <FormField
+            control={form.control}
+            name="invoice_number"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>INVOICE #:</FormLabel>
+                <FormControl>
+                  <Input {...field} value={field.value || ''} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="vin"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>VIN #:</FormLabel>
+                <FormControl>
+                  <Input {...field} value={field.value || ''} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <div className="md:col-span-2">
+            <Label className="text-xs font-medium">Project Type:</Label>
+            <div className="mt-2 flex flex-wrap gap-4">
+              {[
+                { id: 'full_wrap', label: 'FULL WRAP' },
+                { id: 'partial', label: 'PARTIAL' },
+                { id: 'decals', label: 'DECALS' },
+                { id: 'perf', label: 'PERF' },
+                { id: 'removal', label: 'REMOVAL' },
+                { id: 'third_party', label: '3RD PARTY' },
+                { id: 'bodywork', label: 'BODYWORK' },
+              ].map(({ id, label }) => (
+                <FormField
+                  key={id}
+                  control={form.control}
+                  name={`project_type.${id}`}
+                  render={({ field }) => (
+                    <FormItem className="flex items-center space-x-2">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value || false}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormLabel className="text-xs font-normal">
+                        {label}
+                      </FormLabel>
+                    </FormItem>
+                  )}
+                />
+              ))}
+            </div>
+          </div>
         </div>
 
-        <FormField
-          control={form.control}
-          name="status"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Status</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select project status" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="Not Started">Not Started</SelectItem>
-                  <SelectItem value="In Progress">In Progress</SelectItem>
-                  <SelectItem value="On Hold">On Hold</SelectItem>
-                  <SelectItem value="Completed">Completed</SelectItem>
-                  <SelectItem value="Cancelled">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {error && (
-          <div className="bg-red-50 text-red-600 px-4 py-2 rounded-md text-sm">
-            {error}
-          </div>
-        )}
-
-        <div className="flex justify-end space-x-4">
-          <Button type="submit" disabled={isLoading}>
-            {isLoading ? 'Saving...' : initialData ? 'Update Project' : 'Create Project'}
+        <div className="flex justify-end gap-4">
+          <Button
+            type="submit"
+            disabled={loading}
+          >
+            {loading ? 'Creating...' : 'Create Project'}
           </Button>
         </div>
       </form>

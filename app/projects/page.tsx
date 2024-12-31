@@ -1,85 +1,46 @@
-/**
- * Projects Page: Project management interface
- * Lists all projects with filtering and sorting capabilities
- */
-import { Metadata } from 'next'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
+'use client'
+
+import { useRouter } from 'next/navigation'
 import { ProjectList } from '@/components/projects/project-list'
 import { ProjectCreateButton } from '@/components/projects/project-create-button'
+import { CreateTravelerButton } from '@/components/projects/create-traveler-button'
+import { useProjects } from '@/hooks/use-projects'
 
-export const metadata: Metadata = {
-  title: 'Projects | Enterprise Project Management',
-  description: 'Manage and track all your projects',
-}
+export default function ProjectsPage() {
+  const router = useRouter()
+  const { projects, loading } = useProjects()
 
-async function getProjects() {
-  return prisma.project.findMany({
-    include: {
-      Customer: {
-        select: {
-          name: true,
-        },
-      },
-      Task: {
-        select: {
-          task_id: true,
-          status: true,
-        },
-      },
-    },
-    orderBy: {
-      created_at: 'desc',
-    },
-  })
-}
-
-async function getCustomers() {
-  return prisma.customer.findMany({
-    select: {
-      customer_id: true,
-      name: true,
-    },
-    orderBy: {
-      name: 'asc',
-    },
-  })
-}
-
-/**
- * Projects page component
- * Lists all projects and provides options to create, view, and manage projects
- */
-export default async function ProjectsPage() {
-  const session = await getServerSession(authOptions)
-  if (!session?.user) {
-    return null
+  const handleViewProject = (projectId: number) => {
+    router.push(`/projects/${projectId}`)
   }
 
-  const [projects, customers] = await Promise.all([
-    getProjects(),
-    getCustomers(),
-  ])
-
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container py-8">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-2xl font-bold">Projects</h1>
+          <h1 className="text-3xl font-bold mb-2">Projects</h1>
           <p className="text-muted-foreground">
-            Manage and track all your projects
+            Manage and track all your projects in one place
           </p>
         </div>
-        <ProjectCreateButton customers={customers} />
+        <div className="flex items-center gap-3">
+          <CreateTravelerButton projectId={0} />
+          <ProjectCreateButton />
+        </div>
       </div>
 
-      <ProjectList
-        projects={projects}
-        onViewProject={(projectId) => {
-          // This will be handled by client-side navigation
-        }}
-      />
+      {loading ? (
+        <div className="space-y-4">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="h-16 bg-muted animate-pulse rounded-lg" />
+          ))}
+        </div>
+      ) : (
+        <ProjectList
+          projects={projects}
+          onViewProject={handleViewProject}
+        />
+      )}
     </div>
   )
 } 

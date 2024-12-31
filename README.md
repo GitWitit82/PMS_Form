@@ -1,121 +1,108 @@
 # Enterprise Project Management System
 
-A comprehensive project management system built with Next.js, TypeScript, and Prisma, featuring workflow management, form integration, and role-based access control.
+A comprehensive project management system built with Next.js, TypeScript, and Tailwind CSS.
 
 ## Features
 
-### Workflow Management
-- Task dependency management with support for various dependency types (Start-to-Start, Start-to-Finish, Finish-to-Start, Finish-to-Finish)
-- Real-time progress tracking and status updates
-- Estimated completion time calculation based on task durations and dependencies
-- Visual progress indicators and dependency visualization
-
-### Form System
-- Dynamic form builder with customizable fields and layouts
-- Department-specific form templates with custom colors
-- Form versioning and template management
-- Integration with workflow tasks and project management
-- Enhanced Print/Panel Checklist with improved section management
-- Optimized form layout and user interaction patterns
-- Improved form component reusability and maintainability
-- Drag-and-drop form reordering with automatic page number updates
-- Real-time order persistence with optimistic updates
-
 ### Project Management
-- Resource scheduling and allocation
-- Task assignment and tracking
-- Project timeline visualization
-- Status reporting and notifications
+- Create and manage projects with detailed information
+- Track project status and progress
+- Assign customers to projects
+- Multiple project types support (Full Wrap, Partial, Decals, etc.)
+- VIN and Invoice number tracking
 
-### Access Control
-- Role-based access control (ADMIN, PROJECT_MGT, CEO)
-- Department-specific permissions
-- Secure authentication using NextAuth.js
+### Forms System
+- Dynamic form builder for creating custom forms
+- Department-specific form templates
+- Color-coded forms based on department
+- Drag-and-drop form reordering
+- Page number organization for forms
+- Standardized form layouts with:
+  - Color-coded headers
+  - Project information section
+  - Instructions
+  - Task checklists
+
+### Workflow Management
+- Create and track workflow tasks
+- Associate forms with workflow steps
+- Track task dependencies and progress
+- Status updates and notifications
 
 ## Technical Stack
 
-- **Frontend**: Next.js 14, React, TypeScript
-- **UI Components**: Shadcn UI, TailwindCSS, DnD Kit
-- **Database**: PostgreSQL with Prisma ORM
-- **Authentication**: NextAuth.js
-- **State Management**: React Context and Hooks
-- **API**: Next.js API Routes with REST endpoints
+- **Frontend**: Next.js 14, TypeScript, TailwindCSS
+- **UI Components**: Shadcn/ui
+- **Form Handling**: React Hook Form, Zod
+- **Database**: Prisma ORM
+- **State Management**: React Context
+- **Styling**: TailwindCSS, CSS Modules
 
 ## Project Structure
 
 ```
-├── app/
-│   ├── api/                    # API routes
-│   ├── forms/                  # Form pages
-│   └── workflows/              # Workflow pages
-├── components/
-│   ├── forms/                  # Form components
-│   ├── ui/                     # UI components
-│   └── workflows/              # Workflow components
-├── lib/                        # Utility functions
-├── prisma/                     # Database schema and migrations
-└── public/                     # Static assets
+├── app/                    # Next.js app directory
+│   ├── api/               # API routes
+│   ├── forms/            # Forms pages
+│   └── projects/         # Project pages
+├── components/            # React components
+│   ├── forms/            # Form components
+│   ├── projects/         # Project components
+│   └── ui/               # UI components
+├── lib/                   # Utility functions
+├── prisma/               # Database schema
+└── types/                # TypeScript types
 ```
+
+## Recent Updates
+
+### Form System Enhancements (Latest)
+- Added customer selection to project creation form
+- Improved form validation and error handling
+- Added loading states and better user feedback
+- Fixed controlled/uncontrolled input issues
+- Enhanced error messages and toast notifications
+
+### Project Management
+- Implemented project type selection with checkboxes
+- Added VIN and invoice number tracking
+- Improved project creation workflow
+- Enhanced customer association
 
 ## Getting Started
 
 1. Clone the repository
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Set up environment variables:
-   ```bash
-   cp .env.example .env
-   ```
-4. Initialize the database:
-   ```bash
-   npx prisma migrate dev
-   npx prisma db seed
-   ```
-5. Start the development server:
-   ```bash
-   npm run dev
-   ```
+2. Install dependencies: `npm install`
+3. Set up environment variables
+4. Run database migrations: `npx prisma migrate dev`
+5. Start development server: `npm run dev`
 
-## Recent Updates
+## Development Guidelines
 
-### Workflow System Enhancement
-- Implemented task dependency management
-- Added progress tracking and timeline estimation
-- Created workflow progress visualization
-- Integrated with form system for task completion
+### Code Style
+- Use TypeScript for type safety
+- Follow React best practices
+- Implement proper error handling
+- Add JSDoc comments for all components and functions
+- Use early returns for better readability
 
-### Form System Updates
-- Added department color customization
-- Implemented form template versioning
-- Created dynamic form builder
-- Added form validation and error handling
-- Enhanced Print/Panel Checklist with improved section management
-- Optimized form layout and user interaction patterns
-- Improved form component reusability and maintainability
+### Components
+- Create reusable components
+- Implement proper prop validation
+- Add accessibility features
+- Use Tailwind for styling
+- Follow naming conventions
+
+### Documentation
+- Update README with new features
+- Add JSDoc comments
+- Document API endpoints
+- Include usage examples
 
 ## Contributing
 
 1. Create a feature branch
-2. Implement changes with proper documentation
-3. Submit a pull request with a clear description
-4. Ensure all tests pass and code meets standards
-
-## Documentation
-
-All components and functions are documented using JSDoc comments. Example:
-
-```typescript
-/**
- * WorkflowProgress Component
- * Displays and manages workflow progress, including task dependencies
- * @param {number} workflowId - The ID of the workflow
- * @param {Task[]} tasks - Array of workflow tasks
- * @param {Function} onTaskUpdate - Callback for task status updates
- */
-```
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
+2. Make changes
+3. Add tests if applicable
+4. Update documentation
+5. Submit pull request
