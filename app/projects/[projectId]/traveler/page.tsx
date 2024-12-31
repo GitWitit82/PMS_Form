@@ -2,8 +2,10 @@
 
 import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { CreateTravelerButton } from '@/components/projects/create-traveler-button'
 import { Button } from '@/components/ui/button'
+import { WorkflowForm } from '@/components/projects/workflow-form'
+import { PrintPanelChecklist } from '@/components/forms/print-panel-checklist'
+import { FormProjectInfo } from '@/components/forms/form-project-info'
 import { toast } from 'sonner'
 
 interface Project {
@@ -14,9 +16,11 @@ interface Project {
   Customer: {
     name: string
   }
+  vin_number?: string
+  invoice_number?: string
 }
 
-export default function ProjectPage() {
+export default function ProjectTravelerPage() {
   const params = useParams()
   const router = useRouter()
   const projectId = parseInt(params.projectId as string)
@@ -51,10 +55,6 @@ export default function ProjectPage() {
     }
   }, [projectId])
 
-  const handleShowTraveler = () => {
-    router.push(`/projects/${projectId}/traveler`)
-  }
-
   if (loading) {
     return (
       <div className="container py-8">
@@ -87,26 +87,30 @@ export default function ProjectPage() {
     <div className="container py-8">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold mb-2">{project.name}</h1>
-          <div className="flex items-center gap-2 text-muted-foreground">
+          <h1 className="text-2xl font-bold">Traveler for {project.name}</h1>
+          <div className="flex items-center gap-2 text-muted-foreground mt-2">
             <span>{project.Customer.name}</span>
             <span>•</span>
-            <span className="capitalize">{project.status.toLowerCase()}</span>
+            <span>{project.status}</span>
           </div>
-          {project.description && (
-            <p className="mt-4 text-muted-foreground">
-              {project.description}
-            </p>
-          )}
         </div>
-        <div className="flex items-center gap-4">
-          <Button 
-            variant="outline"
-            onClick={handleShowTraveler}
-          >
-            Show Traveler
-          </Button>
-          <CreateTravelerButton projectId={projectId} />
+        <Button
+          variant="outline"
+          onClick={() => router.push(`/projects/${projectId}`)}
+        >
+          Back to Project
+        </Button>
+      </div>
+
+      <div className="space-y-8">
+        <WorkflowForm 
+          projectId={projectId} 
+          project={project}
+          isNewProject={false}
+        />
+
+        <div className="grid grid-cols-1 gap-8">
+          <PrintPanelChecklist project={project} />
         </div>
       </div>
     </div>

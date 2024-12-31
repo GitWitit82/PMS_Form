@@ -1,47 +1,51 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { PrismaClient } from '@prisma/client'
+
+const prisma = new PrismaClient()
 
 /**
- * GET handler for fetching all customers
- * @returns {Promise<NextResponse>} JSON response containing customers data or error message
+ * GET /api/customers
+ * Fetches all customers from the database
  */
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user) {
-      return new NextResponse(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401 }
-      )
-    }
-
     const customers = await prisma.customer.findMany({
-      select: {
-        customer_id: true,
-        name: true,
-      },
       orderBy: {
         name: 'asc',
       },
     })
 
-    return new NextResponse(
-      JSON.stringify(customers),
-      {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }
-    )
+    return NextResponse.json({ data: customers })
   } catch (error) {
     console.error('Error fetching customers:', error)
-    return new NextResponse(
-      JSON.stringify({ error: 'Failed to fetch customers' }),
-      {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      }
+    return NextResponse.json(
+      { error: 'Failed to fetch customers' },
+      { status: 500 }
+    )
+  }
+}
+
+/**
+ * POST /api/customers
+ * Creates a new customer
+ */
+export async function POST(request: Request) {
+  try {
+    const body = await request.json()
+    const customer = await prisma.customer.create({
+      data: {
+        name: body.name,
+        email: body.email,
+        phone: body.phone,
+      },
+    })
+
+    return NextResponse.json({ data: customer })
+  } catch (error) {
+    console.error('Error creating customer:', error)
+    return NextResponse.json(
+      { error: 'Failed to create customer' },
+      { status: 500 }
     )
   }
 } 

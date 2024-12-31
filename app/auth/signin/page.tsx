@@ -7,10 +7,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
 import { Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 
 export default function SignIn() {
   const router = useRouter()
-  const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     username: '',
@@ -19,7 +19,6 @@ export default function SignIn() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError(null)
     setLoading(true)
 
     try {
@@ -30,13 +29,14 @@ export default function SignIn() {
       })
 
       if (result?.error) {
-        setError(result.error)
+        toast.error(result.error)
       } else {
+        toast.success('Signed in successfully')
         router.push('/dashboard')
         router.refresh()
       }
     } catch (error) {
-      setError('An error occurred during sign in')
+      toast.error('An error occurred during sign in')
     } finally {
       setLoading(false)
     }
@@ -62,6 +62,8 @@ export default function SignIn() {
               onChange={(e) => setFormData({ ...formData, username: e.target.value })}
               required
               placeholder="Enter your username"
+              autoComplete="username"
+              className="h-10"
             />
           </div>
 
@@ -78,16 +80,14 @@ export default function SignIn() {
               maxLength={4}
               pattern="\d{4}"
               placeholder="Enter your 4-digit PIN"
+              autoComplete="current-password"
+              className="h-10"
             />
           </div>
 
-          {error && (
-            <div className="text-sm text-red-500 text-center">{error}</div>
-          )}
-
           <Button
             type="submit"
-            className="w-full"
+            className="w-full h-10"
             disabled={loading}
           >
             {loading ? (

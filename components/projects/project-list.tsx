@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -21,6 +21,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { PlusIcon, SearchIcon } from 'lucide-react'
+import { toast } from 'sonner'
 
 interface Project {
   project_id: number
@@ -37,22 +38,34 @@ interface Project {
   }>
 }
 
-interface ProjectListProps {
-  projects: Project[]
-  onCreateProject?: () => void
-  onViewProject: (projectId: number) => void
-}
-
-/**
- * A component that displays a list of projects with filtering and sorting
- */
-export function ProjectList({
-  projects,
-  onCreateProject,
-  onViewProject,
-}: ProjectListProps) {
+export function ProjectList() {
+  const [projects, setProjects] = useState<Project[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
+
+  useEffect(() => {
+    async function fetchProjects() {
+      try {
+        const response = await fetch('/api/projects')
+        const result = await response.json()
+
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to fetch projects')
+        }
+
+        setProjects(result.data || [])
+      } catch (error) {
+        console.error('Error fetching projects:', error)
+        toast.error('Failed to load projects')
+        setProjects([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchProjects()
+  }, [])
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -70,7 +83,7 @@ export function ProjectList({
   }
 
   const getProjectProgress = (project: Project) => {
-    const totalTasks = project.Task.length
+    const totalTasks = project.Task?.length || 0
     if (totalTasks === 0) return 0
     const completedTasks = project.Task.filter(
       (task) => task.status === 'Completed'
@@ -78,17 +91,32 @@ export function ProjectList({
     return Math.round((completedTasks / totalTasks) * 100)
   }
 
-  const filteredProjects = projects.filter((project) => {
-    const matchesSearch =
-      searchQuery === '' ||
-      project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      project.Customer.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredProjects = Array.isArray(projects) 
+    ? projects.filter((project) => {
+        const matchesSearch =
+          searchQuery === '' ||
+          project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          project.Customer.name.toLowerCase().includes(searchQuery.toLowerCase())
 
-    const matchesStatus =
-      statusFilter === 'all' || project.status === statusFilter
+        const matchesStatus =
+          statusFilter === 'all' || project.status === statusFilter
 
-    return matchesSearch && matchesStatus
-  })
+        return matchesSearch && matchesStatus
+      })
+    : []
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <div className="h-8 bg-muted animate-pulse rounded w-1/4" />
+        <div className="space-y-2">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="h-12 bg-muted animate-pulse rounded" />
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-4">
@@ -120,12 +148,10 @@ export function ProjectList({
             </SelectContent>
           </Select>
         </div>
-        {onCreateProject && (
-          <Button onClick={onCreateProject}>
-            <PlusIcon className="h-4 w-4 mr-2" />
-            New Project
-          </Button>
-        )}
+        <Button onClick={() => window.location.href = '/projects/new'}>
+          <PlusIcon className="h-4 w-4 mr-2" />
+          New Project
+        </Button>
       </div>
 
       <div className="rounded-md border">
@@ -155,7 +181,7 @@ export function ProjectList({
                 <TableRow
                   key={project.project_id}
                   className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => onViewProject(project.project_id)}
+                  onClick={() => window.location.href = `/projects/${project.project_id}`}
                 >
                   <TableCell className="font-medium">{project.name}</TableCell>
                   <TableCell>{project.Customer.name}</TableCell>
@@ -185,7 +211,7 @@ export function ProjectList({
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
-                    {project.Task.length} tasks
+                    {project.Task?.length || 0} tasks
                   </TableCell>
                 </TableRow>
               ))

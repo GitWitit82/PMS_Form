@@ -124,8 +124,10 @@ export function ChecklistForm({
     >
       <FormChecklist
         items={items.map((item) => ({
-          ...item,
-          checked: checkedItems.includes(item.id),
+          id: item.id,
+          task: item.text,
+          completed: checkedItems.includes(item.id),
+          notes: ''
         }))}
         instructions={instructions}
         onItemChange={handleChecklistItemChange}

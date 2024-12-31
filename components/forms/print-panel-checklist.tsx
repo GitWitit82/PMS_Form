@@ -31,7 +31,18 @@ interface PanelSections {
   }
 }
 
-export function PrintPanelChecklist() {
+interface PrintPanelChecklistProps {
+  project: {
+    name: string
+    Customer: {
+      name: string
+    }
+    vin_number?: string
+    invoice_number?: string
+  }
+}
+
+export function PrintPanelChecklist({ project }: PrintPanelChecklistProps) {
   const [sections, setSections] = useState<PanelSections>({
     driver: { title: "FILL OUT PANEL SLOTS FOR DRIVER SIDE:", prefix: "D", rows: [] },
     passenger: { title: "FILL OUT PANEL SLOTS FOR PASSENGER SIDE:", prefix: "P", rows: [] },
@@ -96,26 +107,51 @@ export function PrintPanelChecklist() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
             <Label htmlFor="client">Client:</Label>
-            <Input id="client" className="border-b border-t-0 border-x-0 rounded-none" />
+            <Input 
+              id="client" 
+              value={project.Customer.name} 
+              readOnly 
+              className="border-b border-t-0 border-x-0 rounded-none" 
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="project">Project:</Label>
-            <Input id="project" className="border-b border-t-0 border-x-0 rounded-none" />
+            <Input 
+              id="project" 
+              value={project.name} 
+              readOnly 
+              className="border-b border-t-0 border-x-0 rounded-none" 
+            />
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="space-y-2">
             <Label htmlFor="date">Date:</Label>
-            <Input id="date" type="date" className="border-b border-t-0 border-x-0 rounded-none" />
+            <Input 
+              id="date" 
+              type="date" 
+              defaultValue={new Date().toISOString().split('T')[0]}
+              className="border-b border-t-0 border-x-0 rounded-none" 
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="vin">VIN Number:</Label>
-            <Input id="vin" className="border-b border-t-0 border-x-0 rounded-none" />
+            <Input 
+              id="vin" 
+              value={project.vin_number || ''} 
+              readOnly 
+              className="border-b border-t-0 border-x-0 rounded-none" 
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="invoice">Invoice#:</Label>
-            <Input id="invoice" className="border-b border-t-0 border-x-0 rounded-none" />
+            <Input 
+              id="invoice" 
+              value={project.invoice_number || ''} 
+              readOnly 
+              className="border-b border-t-0 border-x-0 rounded-none" 
+            />
           </div>
         </div>
 

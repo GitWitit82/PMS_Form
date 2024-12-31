@@ -2,34 +2,40 @@
  * Projects API Routes
  * Handles CRUD operations for projects
  */
-import { z } from 'zod'
+import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { successResponse, errorResponse } from '@/lib/api-response'
-import { NextResponse } from 'next/server'
+import { z } from 'zod'
 
 const projectSchema = z.object({
   name: z.string().min(1, 'Project name is required'),
-  description: z.string().optional(),
-  customer_id: z.number({
-    required_error: 'Customer is required',
+  vin: z.string().optional(),
+  invoice_number: z.string().optional(),
+  project_type: z.object({
+    full_wrap: z.boolean().default(false),
+    partial: z.boolean().default(false),
+    decals: z.boolean().default(false),
+    perf: z.boolean().default(false),
+    removal: z.boolean().default(false),
+    third_party: z.boolean().default(false),
+    bodywork: z.boolean().default(false),
   }),
-  start_date: z.string().datetime().optional().nullable(),
-  end_date: z.string().datetime().optional().nullable(),
-  status: z.enum(['Not Started', 'In Progress', 'On Hold', 'Completed', 'Cancelled']),
+  customer_id: z.number(),
+  description: z.string().optional(),
+  status: z.string(),
 })
 
 /**
  * GET /api/projects
- * Get all projects with optional filtering
+ * Fetch all projects
  */
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) {
-      return new NextResponse(
-        JSON.stringify({ error: 'Unauthorized' }),
+      return NextResponse.json(
+        { error: 'Unauthorized' },
         { status: 401 }
       )
     }
@@ -41,33 +47,18 @@ export async function GET() {
             name: true,
           },
         },
-        Task: {
-          select: {
-            task_id: true,
-            status: true,
-          },
-        },
       },
       orderBy: {
         created_at: 'desc',
       },
     })
 
-    return new NextResponse(
-      JSON.stringify(projects),
-      {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }
-    )
+    return NextResponse.json({ data: projects })
   } catch (error) {
     console.error('Error fetching projects:', error)
-    return new NextResponse(
-      JSON.stringify({ error: 'Failed to fetch projects' }),
-      {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      }
+    return NextResponse.json(
+      { error: 'Failed to fetch projects' },
+      { status: 500 }
     )
   }
 }
@@ -76,11 +67,14 @@ export async function GET() {
  * POST /api/projects
  * Create a new project
  */
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user) {
-      return errorResponse(401, 'Unauthorized')
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
     }
 
     const body = await request.json()
@@ -88,9 +82,13 @@ export async function POST(request: Request) {
 
     const project = await prisma.project.create({
       data: {
-        ...validatedData,
-        start_date: validatedData.start_date ? new Date(validatedData.start_date) : null,
-        end_date: validatedData.end_date ? new Date(validatedData.end_date) : null,
+        name: validatedData.name,
+        vin_number: validatedData.vin,
+        invoice_number: validatedData.invoice_number,
+        customer_id: validatedData.customer_id,
+        description: validatedData.description,
+        status: validatedData.status,
+        project_type: validatedData.project_type,
       },
       include: {
         Customer: {
@@ -101,12 +99,18 @@ export async function POST(request: Request) {
       },
     })
 
-    return successResponse(project)
+    return NextResponse.json({ data: project })
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return errorResponse(400, 'Invalid request data', error.errors)
-    }
     console.error('Error creating project:', error)
-    return errorResponse(500, 'Failed to create project')
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Invalid project data', details: error.errors },
+        { status: 400 }
+      )
+    }
+    return NextResponse.json(
+      { error: 'Failed to create project' },
+      { status: 500 }
+    )
   }
 } 

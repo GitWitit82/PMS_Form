@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
@@ -25,7 +25,6 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { toast } from 'sonner'
-import type { ProjectFormData } from '@/types/project'
 
 const projectSchema = z.object({
   name: z.string().min(1, 'Project name is required'),
@@ -47,14 +46,33 @@ const projectSchema = z.object({
   status: z.string().default('Not Started'),
 })
 
-interface ProjectFormProps {
-  onSuccess?: () => void
-  customers: Array<{ customer_id: number; name: string }>
+interface Customer {
+  customer_id: number
+  name: string
 }
 
-export function ProjectForm({ onSuccess, customers }: ProjectFormProps) {
+export function ProjectForm({ onSuccess }: { onSuccess?: () => void }) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [customers, setCustomers] = useState<Customer[]>([])
+
+  useEffect(() => {
+    async function fetchCustomers() {
+      try {
+        const response = await fetch('/api/customers')
+        const result = await response.json()
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to fetch customers')
+        }
+        setCustomers(result.data || [])
+      } catch (error) {
+        console.error('Error fetching customers:', error)
+        toast.error('Failed to load customers')
+      }
+    }
+
+    fetchCustomers()
+  }, [])
 
   const form = useForm<z.infer<typeof projectSchema>>({
     resolver: zodResolver(projectSchema),
@@ -139,7 +157,7 @@ export function ProjectForm({ onSuccess, customers }: ProjectFormProps) {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {customers.map((customer) => (
+                    {Array.isArray(customers) && customers.map((customer) => (
                       <SelectItem 
                         key={customer.customer_id} 
                         value={customer.customer_id.toString()}
@@ -186,23 +204,23 @@ export function ProjectForm({ onSuccess, customers }: ProjectFormProps) {
             <Label className="text-xs font-medium">Project Type:</Label>
             <div className="mt-2 flex flex-wrap gap-4">
               {[
-                { id: 'full_wrap', label: 'FULL WRAP' },
-                { id: 'partial', label: 'PARTIAL' },
-                { id: 'decals', label: 'DECALS' },
-                { id: 'perf', label: 'PERF' },
-                { id: 'removal', label: 'REMOVAL' },
-                { id: 'third_party', label: '3RD PARTY' },
-                { id: 'bodywork', label: 'BODYWORK' },
+                { id: 'full_wrap' as const, label: 'FULL WRAP' },
+                { id: 'partial' as const, label: 'PARTIAL' },
+                { id: 'decals' as const, label: 'DECALS' },
+                { id: 'perf' as const, label: 'PERF' },
+                { id: 'removal' as const, label: 'REMOVAL' },
+                { id: 'third_party' as const, label: '3RD PARTY' },
+                { id: 'bodywork' as const, label: 'BODYWORK' },
               ].map(({ id, label }) => (
                 <FormField
                   key={id}
                   control={form.control}
-                  name={`project_type.${id}`}
+                  name={`project_type.${id}` as `project_type.${typeof id}`}
                   render={({ field }) => (
                     <FormItem className="flex items-center space-x-2">
                       <FormControl>
                         <Checkbox
-                          checked={field.value || false}
+                          checked={Boolean(field.value)}
                           onCheckedChange={field.onChange}
                         />
                       </FormControl>

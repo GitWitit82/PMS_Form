@@ -15,35 +15,41 @@ export const authOptions: NextAuthOptions = {
         pin: { label: 'PIN', type: 'password' }
       },
       async authorize(credentials) {
-        if (!credentials?.username || !credentials?.pin) {
-          return null
-        }
+        try {
+          if (!credentials?.username || !credentials?.pin) {
+            throw new Error('Please enter both username and PIN')
+          }
 
-        const user = await prisma.user.findUnique({
-          where: { username: credentials.username }
-        })
+          const user = await prisma.user.findUnique({
+            where: { username: credentials.username }
+          })
 
-        if (!user) {
-          return null
-        }
+          if (!user) {
+            throw new Error('Invalid username or PIN')
+          }
 
-        const isValid = await bcrypt.compare(credentials.pin, user.pin_hash)
+          const isValid = await bcrypt.compare(credentials.pin, user.pin_hash)
 
-        if (!isValid) {
-          return null
-        }
+          if (!isValid) {
+            throw new Error('Invalid username or PIN')
+          }
 
-        return {
-          id: user.user_id.toString(),
-          username: user.username,
-          email: user.email,
-          role: user.role
+          return {
+            id: user.user_id.toString(),
+            username: user.username,
+            email: user.email,
+            role: user.role
+          }
+        } catch (error) {
+          console.error('Auth error:', error)
+          throw error
         }
       }
     })
   ],
   pages: {
-    signIn: '/auth/signin'
+    signIn: '/auth/signin',
+    error: '/auth/error'
   },
   callbacks: {
     async jwt({ token, user }) {
@@ -64,8 +70,10 @@ export const authOptions: NextAuthOptions = {
     }
   },
   session: {
-    strategy: 'jwt'
-  }
+    strategy: 'jwt',
+    maxAge: 24 * 60 * 60 // 24 hours
+  },
+  debug: process.env.NODE_ENV === 'development'
 }
 
 /**

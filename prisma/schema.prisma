@@ -41,17 +41,21 @@ model Department {
 }
 
 model Project {
-  project_id  Int       @id @default(autoincrement())
-  customer_id Int
-  name        String
-  description String?
-  start_date  DateTime?
-  end_date    DateTime?
-  status      String    @default("Not Started")
-  created_at  DateTime  @default(now())
-  Customer    Customer  @relation(fields: [customer_id], references: [customer_id], onDelete: Cascade)
-  Task        Task[]
-  forms       FormSubmission[]
+  project_id    Int               @id @default(autoincrement())
+  name          String
+  description   String?
+  customer_id   Int
+  status        String            @default("Not Started")
+  start_date    DateTime?
+  end_date      DateTime?
+  created_at    DateTime          @default(now())
+  vin_number    String?
+  invoice_number String?
+  Customer      Customer          @relation(fields: [customer_id], references: [customer_id])
+  tasks         Task[]
+  forms         FormSubmission[]
+
+  @@map("projects")
 }
 
 model Resource {

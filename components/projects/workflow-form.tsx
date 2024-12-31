@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
@@ -22,11 +22,46 @@ interface WorkflowFormProps {
   projectId: number
   onSuccess?: () => void
   isNewProject?: boolean
+  project?: {
+    name: string
+    description?: string
+    Customer: {
+      name: string
+    }
+    vin_number?: string
+    invoice_number?: string
+  }
 }
 
-export function WorkflowForm({ projectId, onSuccess, isNewProject = false }: WorkflowFormProps) {
+export function WorkflowForm({ projectId, onSuccess, isNewProject = false, project }: WorkflowFormProps) {
   const [completedSteps, setCompletedSteps] = useState<number[]>([])
-  
+  const [formData, setFormData] = useState({
+    project: project?.name || '',
+    customer: project?.Customer?.name || '',
+    description: project?.description || '',
+    vin: project?.vin_number || '',
+    invoice: project?.invoice_number || '',
+    date: new Date().toISOString().split('T')[0]
+  })
+
+  // Update form data when project changes
+  useEffect(() => {
+    if (project) {
+      setFormData(prev => ({
+        ...prev,
+        project: project.name,
+        customer: project.Customer.name,
+        description: project.description || '',
+        vin: project.vin_number || '',
+        invoice: project.invoice_number || ''
+      }))
+    }
+  }, [project])
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }))
+  }
+
   const steps: Step[] = [
     // Row 1
     { id: 1, title: 'INITIAL CONTACT', subtitle: '(LEAD OR PROSPECT)', color: 'blue', hasInput: true },
@@ -186,19 +221,41 @@ export function WorkflowForm({ projectId, onSuccess, isNewProject = false }: Wor
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="project" className="text-xs">PROJECT:</Label>
-              <Input id="project" className="mt-1 h-8 text-sm" />
+              <Input 
+                id="project" 
+                value={formData.project}
+                onChange={(e) => handleInputChange('project', e.target.value)}
+                className="mt-1 h-8 text-sm" 
+                readOnly={!isNewProject}
+              />
             </div>
             <div>
               <Label htmlFor="date" className="text-xs">DATE:</Label>
-              <Input id="date" type="date" className="mt-1 h-8 text-sm" />
+              <Input 
+                id="date" 
+                type="date" 
+                value={formData.date}
+                onChange={(e) => handleInputChange('date', e.target.value)}
+                className="mt-1 h-8 text-sm" 
+              />
             </div>
             <div>
               <Label htmlFor="vin" className="text-xs">VIN #:</Label>
-              <Input id="vin" className="mt-1 h-8 text-sm" />
+              <Input 
+                id="vin" 
+                value={formData.vin}
+                onChange={(e) => handleInputChange('vin', e.target.value)}
+                className="mt-1 h-8 text-sm" 
+              />
             </div>
             <div>
               <Label htmlFor="invoice" className="text-xs">INVOICE #:</Label>
-              <Input id="invoice" className="mt-1 h-8 text-sm" />
+              <Input 
+                id="invoice" 
+                value={formData.invoice}
+                onChange={(e) => handleInputChange('invoice', e.target.value)}
+                className="mt-1 h-8 text-sm" 
+              />
             </div>
           </div>
 

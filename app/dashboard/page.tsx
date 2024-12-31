@@ -51,7 +51,7 @@ async function getRecentProjects(limit = 5) {
     },
     include: {
       Customer: true,
-      Task: {
+      tasks: {
         select: {
           task_id: true,
         },
@@ -130,7 +130,7 @@ export default async function DashboardPage() {
                       {project.name}
                     </TableCell>
                     <TableCell>{project.Customer.name}</TableCell>
-                    <TableCell>{project.Task.length}</TableCell>
+                    <TableCell>{project.tasks.length}</TableCell>
                     <TableCell>
                       <span
                         className={`px-2 py-1 rounded-full text-xs font-semibold ${
