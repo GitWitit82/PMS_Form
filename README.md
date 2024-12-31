@@ -15,6 +15,11 @@ A comprehensive project management system built with Next.js, TypeScript, and Pr
 - Department-specific form templates with custom colors
 - Form versioning and template management
 - Integration with workflow tasks and project management
+- Enhanced Print/Panel Checklist with improved section management
+- Optimized form layout and user interaction patterns
+- Improved form component reusability and maintainability
+- Drag-and-drop form reordering with automatic page number updates
+- Real-time order persistence with optimistic updates
 
 ### Project Management
 - Resource scheduling and allocation
@@ -30,7 +35,7 @@ A comprehensive project management system built with Next.js, TypeScript, and Pr
 ## Technical Stack
 
 - **Frontend**: Next.js 14, React, TypeScript
-- **UI Components**: Shadcn UI, TailwindCSS
+- **UI Components**: Shadcn UI, TailwindCSS, DnD Kit
 - **Database**: PostgreSQL with Prisma ORM
 - **Authentication**: NextAuth.js
 - **State Management**: React Context and Hooks

@@ -114,6 +114,7 @@ model User {
   resource   Resource?
   Activity   Activity[]
   forms      FormSubmission[]
+  workflowVersions WorkflowVersion[]
 
   @@map("users")
 }
@@ -217,6 +218,7 @@ model Form {
   description   String?
   instructions  String?
   type          String       @default("CHECKLIST") // CHECKLIST, DATA_ENTRY, APPROVAL, etc.
+  page          Int          @default(1) // Page number for ordering forms
   created_at    DateTime      @default(now())
   updated_at    DateTime      @updatedAt
   department    Department    @relation(fields: [department_id], references: [department_id])

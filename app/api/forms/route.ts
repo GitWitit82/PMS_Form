@@ -38,20 +38,12 @@ export async function GET() {
           },
           take: 1
         },
-        workflowTasks: {
-          include: {
-            workflowTask: {
-              select: {
-                name: true,
-                stage: true
-              }
-            }
-          }
-        }
+        workflowTasks: true
       },
-      orderBy: {
-        created_at: 'desc'
-      }
+      orderBy: [
+        { page: 'asc' },
+        { created_at: 'desc' }
+      ]
     })
 
     console.log(`Found ${forms.length} forms`)
@@ -71,13 +63,14 @@ export async function GET() {
       title: form.title,
       description: form.description || '',
       type: form.type,
+      page: form.page,
       department: {
         name: form.department?.name || 'Unknown',
         color: form.department?.color || '#000000'
       },
-      workflowTasks: form.workflowTasks.map(wt => ({
-        name: wt.workflowTask?.name || '',
-        stage: wt.workflowTask?.stage || ''
+      workflowTasks: form.workflowTasks.map(task => ({
+        name: task.name || '',
+        stage: task.stage || ''
       }))
     }))
 
@@ -123,5 +116,59 @@ export async function GET() {
   } finally {
     // Always disconnect after the operation
     await prisma.$disconnect()
+  }
+}
+
+/**
+ * POST handler for creating a new form
+ * @returns {Promise<NextResponse>} JSON response containing the created form data or error message
+ */
+export async function POST(request: Request) {
+  try {
+    const body = await request.json()
+    const { title, description, instructions, department_id, page, fields } = body
+
+    const form = await prisma.form.create({
+      data: {
+        title,
+        description,
+        instructions,
+        department_id,
+        page: page || 1,
+        type: 'CHECKLIST',
+        templates: {
+          create: {
+            name: title,
+            description: description,
+            version: 1,
+            is_active: true,
+            fields: {
+              items: fields
+            }
+          }
+        }
+      },
+      include: {
+        department: true,
+        templates: true
+      }
+    })
+
+    return new NextResponse(
+      JSON.stringify(form),
+      {
+        status: 201,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    )
+  } catch (error) {
+    console.error('Error creating form:', error)
+    return new NextResponse(
+      JSON.stringify({ error: 'Failed to create form' }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    )
   }
 } 

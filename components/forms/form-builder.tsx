@@ -65,6 +65,7 @@ export function FormBuilder({ formId, onSave }: FormBuilderProps) {
   const [departments, setDepartments] = useState<Department[]>([])
   const [fields, setFields] = useState<FormField[]>([])
   const [loading, setLoading] = useState(false)
+  const [pageNumber, setPageNumber] = useState<number>(1)
 
   // Fetch departments when component mounts
   useEffect(() => {
@@ -97,6 +98,7 @@ export function FormBuilder({ formId, onSave }: FormBuilderProps) {
         setDescription(data.description || '')
         setInstructions(data.instructions || '')
         setSelectedDepartmentId(data.department.department_id.toString())
+        setPageNumber(data.page || 1)
         
         // Transform template fields to match FormField interface
         if (data.templates[0]?.fields.items) {
@@ -171,6 +173,7 @@ export function FormBuilder({ formId, onSave }: FormBuilderProps) {
         description,
         instructions,
         department_id: parseInt(selectedDepartmentId),
+        page: pageNumber,
         fields: fields.map((field, index) => ({
           ...field,
           id: index + 1 // Reset IDs to be sequential
@@ -220,7 +223,7 @@ export function FormBuilder({ formId, onSave }: FormBuilderProps) {
       }
       instructions={
         <div className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="title">Form Title</Label>
               <Input
@@ -250,6 +253,17 @@ export function FormBuilder({ formId, onSave }: FormBuilderProps) {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="pageNumber">Page Number</Label>
+              <Input
+                id="pageNumber"
+                type="number"
+                min="1"
+                value={pageNumber}
+                onChange={(e) => setPageNumber(Math.max(1, parseInt(e.target.value) || 1))}
+                placeholder="Enter page number"
+              />
             </div>
           </div>
           <div className="space-y-2">
