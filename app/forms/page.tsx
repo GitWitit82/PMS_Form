@@ -80,17 +80,31 @@ export default function FormsPage() {
   useEffect(() => {
     const fetchForms = async () => {
       try {
+        setLoading(true)
         const response = await fetch('/api/forms')
+        const responseData = await response.json()
+        
         if (!response.ok) {
-          const error = await response.json()
-          throw new Error(error.message || 'Failed to fetch forms')
+          const errorMessage = responseData.error || 'Failed to fetch forms'
+          if (responseData.details) {
+            console.error('API Error details:', responseData.details)
+          }
+          throw new Error(errorMessage)
         }
-        const data = await response.json()
-        console.log('Fetched forms:', data) // Debug log
-        setForms(data)
-      } catch (error) {
-        console.error('Error fetching forms:', error)
-        toast.error('Failed to load forms')
+
+        if (!responseData.data) {
+          throw new Error('Invalid response format: missing data property')
+        }
+
+        if (!Array.isArray(responseData.data)) {
+          throw new Error('Invalid response format: data is not an array')
+        }
+        
+        setForms(responseData.data)
+      } catch (error: any) {
+        console.error('Error in forms page:', error)
+        toast.error(error.message || 'Failed to load forms')
+        setForms([]) // Reset forms on error
       } finally {
         setLoading(false)
       }

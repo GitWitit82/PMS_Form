@@ -141,6 +141,48 @@ model Workflow {
   description   String?
   created_at    DateTime       @default(now())
   workflowTasks WorkflowTask[]
+  versions      WorkflowVersion[]
+  progress      WorkflowProgress?
+}
+
+model WorkflowVersion {
+  version_id     Int      @id @default(autoincrement())
+  workflow_id    Int
+  version_number Int
+  changes        Json     // Array of change descriptions
+  created_by     Int
+  created_at     DateTime @default(now())
+  is_active      Boolean  @default(true)
+  workflow       Workflow @relation(fields: [workflow_id], references: [workflow_id], onDelete: Cascade)
+  user           User     @relation(fields: [created_by], references: [user_id])
+
+  @@unique([workflow_id, version_number])
+}
+
+model WorkflowProgress {
+  progress_id          Int      @id @default(autoincrement())
+  workflow_id          Int      @unique
+  total_tasks          Int      @default(0)
+  completed_tasks      Int      @default(0)
+  in_progress_tasks    Int      @default(0)
+  blocked_tasks        Int      @default(0)
+  overall_progress     Float    @default(0)
+  estimated_completion DateTime?
+  last_updated        DateTime @default(now())
+  workflow            Workflow @relation(fields: [workflow_id], references: [workflow_id], onDelete: Cascade)
+}
+
+model TaskDependency {
+  dependency_id     Int      @id @default(autoincrement())
+  task_id          Int
+  dependent_task_id Int
+  dependency_type   String   // start-to-start, start-to-finish, finish-to-start, finish-to-finish
+  lag_time         Int?     // Time in minutes
+  created_at       DateTime @default(now())
+  task             WorkflowTask @relation("DependentTasks", fields: [task_id], references: [workflow_task_id], onDelete: Cascade)
+  dependent_task   WorkflowTask @relation("Dependencies", fields: [dependent_task_id], references: [workflow_task_id], onDelete: Cascade)
+
+  @@unique([task_id, dependent_task_id])
 }
 
 model WorkflowTask {
@@ -159,6 +201,13 @@ model WorkflowTask {
   form_id             Int?       // Optional reference to a form
   workflow            Workflow   @relation(fields: [workflow_id], references: [workflow_id], onDelete: Cascade)
   form                Form?      @relation(fields: [form_id], references: [form_id])
+  dependencies        TaskDependency[] @relation("Dependencies")
+  dependent_tasks     TaskDependency[] @relation("DependentTasks")
+  progress           Float           @default(0)
+  status             String          @default("pending")
+  actual_start       DateTime?
+  actual_end         DateTime?
+  estimated_duration Int?            // Duration in minutes
 }
 
 model Form {
