@@ -1,66 +1,55 @@
 # Enterprise Project Management System
 
-A comprehensive project management system built with Next.js, featuring workflow management, form handling, and project tracking capabilities.
+A comprehensive project management system built with Next.js, TypeScript, and Prisma, featuring workflow management, form integration, and role-based access control.
 
 ## Features
 
-### Project Management
-- Project creation and tracking
-- Resource allocation
-- Task management
-- Project status monitoring
-
 ### Workflow Management
-- Customizable workflow templates
-- Task dependencies
-- Stage-based progression
-- Visual workflow representation
+- Task dependency management with support for various dependency types (Start-to-Start, Start-to-Finish, Finish-to-Start, Finish-to-Finish)
+- Real-time progress tracking and status updates
+- Estimated completion time calculation based on task durations and dependencies
+- Visual progress indicators and dependency visualization
 
-### Forms System
-- Dynamic form builder interface
-- Department-specific form templates
-- Multiple field types support:
-  - Text input
-  - Text area
-  - Checkbox
-  - Select dropdown
-- Form preview functionality
-- Project information integration
-- Customizable layouts
-- Department-specific styling
+### Form System
+- Dynamic form builder with customizable fields and layouts
+- Department-specific form templates with custom colors
+- Form versioning and template management
+- Integration with workflow tasks and project management
 
-### User Management
-- Role-based access control
-- User authentication
-- Profile management
+### Project Management
+- Resource scheduling and allocation
+- Task assignment and tracking
+- Project timeline visualization
+- Status reporting and notifications
+
+### Access Control
+- Role-based access control (ADMIN, PROJECT_MGT, CEO)
+- Department-specific permissions
+- Secure authentication using NextAuth.js
 
 ## Technical Stack
 
 - **Frontend**: Next.js 14, React, TypeScript
-- **UI Components**: Shadcn UI, Tailwind CSS
+- **UI Components**: Shadcn UI, TailwindCSS
 - **Database**: PostgreSQL with Prisma ORM
 - **Authentication**: NextAuth.js
-- **State Management**: React Hooks
-- **Notifications**: Sonner Toast
+- **State Management**: React Context and Hooks
+- **API**: Next.js API Routes with REST endpoints
 
 ## Project Structure
 
 ```
-├── app/                    # Next.js app directory
-│   ├── api/               # API routes
-│   ├── forms/             # Form-related pages
-│   │   ├── builder/       # Form builder interface
-│   │   └── [id]/         # Dynamic form pages
-│   └── workflows/         # Workflow pages
-├── components/            # React components
-│   ├── forms/            # Form components
-│   │   ├── form-builder.tsx    # Form builder component
-│   │   ├── form-layout.tsx     # Form layout component
-│   │   └── form-header.tsx     # Form header component
-│   └── ui/               # UI components
-├── lib/                  # Utility functions
-├── prisma/              # Database schema and migrations
-└── providers/           # Context providers
+├── app/
+│   ├── api/                    # API routes
+│   ├── forms/                  # Form pages
+│   └── workflows/              # Workflow pages
+├── components/
+│   ├── forms/                  # Form components
+│   ├── ui/                     # UI components
+│   └── workflows/              # Workflow components
+├── lib/                        # Utility functions
+├── prisma/                     # Database schema and migrations
+└── public/                     # Static assets
 ```
 
 ## Getting Started
@@ -74,9 +63,10 @@ A comprehensive project management system built with Next.js, featuring workflow
    ```bash
    cp .env.example .env
    ```
-4. Run database migrations:
+4. Initialize the database:
    ```bash
    npx prisma migrate dev
+   npx prisma db seed
    ```
 5. Start the development server:
    ```bash
@@ -85,27 +75,41 @@ A comprehensive project management system built with Next.js, featuring workflow
 
 ## Recent Updates
 
-### Form Builder System (Latest)
-- Implemented dynamic form builder interface
-- Added support for multiple field types
-- Created reusable form layout components
-- Added department-specific styling
-- Integrated form preview functionality
-- Added form creation workflow with notifications
+### Workflow System Enhancement
+- Implemented task dependency management
+- Added progress tracking and timeline estimation
+- Created workflow progress visualization
+- Integrated with form system for task completion
 
-### Standard Workflow Implementation
-- Added standard workflow templates
-- Implemented workflow task management
-- Created workflow visualization components
-- Added stage-based progression tracking
+### Form System Updates
+- Added department color customization
+- Implemented form template versioning
+- Created dynamic form builder
+- Added form validation and error handling
+- Enhanced Print/Panel Checklist with improved section management
+- Optimized form layout and user interaction patterns
+- Improved form component reusability and maintainability
 
 ## Contributing
 
-1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+1. Create a feature branch
+2. Implement changes with proper documentation
+3. Submit a pull request with a clear description
+4. Ensure all tests pass and code meets standards
+
+## Documentation
+
+All components and functions are documented using JSDoc comments. Example:
+
+```typescript
+/**
+ * WorkflowProgress Component
+ * Displays and manages workflow progress, including task dependencies
+ * @param {number} workflowId - The ID of the workflow
+ * @param {Task[]} tasks - Array of workflow tasks
+ * @param {Function} onTaskUpdate - Callback for task status updates
+ */
+```
 
 ## License
 

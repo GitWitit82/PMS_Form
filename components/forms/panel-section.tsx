@@ -40,13 +40,7 @@ export function PanelSection({
 }: PanelSectionProps) {
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-bold uppercase">{title}</h3>
-        <Button onClick={onAddRow} variant="outline" size="sm">
-          <Plus className="h-4 w-4 mr-2" />
-          Add Row
-        </Button>
-      </div>
+      <h3 className="text-lg font-bold uppercase">{title}</h3>
       <div className="border rounded-lg overflow-hidden">
         <div className="grid grid-cols-[1fr_100px_repeat(4,80px)] gap-2 bg-gray-100 p-3 text-sm font-medium">
           <div>DIMENSIONS</div>
@@ -105,6 +99,15 @@ export function PanelSection({
           ))}
         </div>
       </div>
+      <Button 
+        onClick={onAddRow} 
+        variant="outline" 
+        size="sm"
+        className="w-1/5"
+      >
+        <Plus className="h-4 w-4 mr-2" />
+        Add Row
+      </Button>
     </div>
   )
 } 
