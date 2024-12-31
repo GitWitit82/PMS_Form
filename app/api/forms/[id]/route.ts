@@ -15,9 +15,7 @@ export async function GET(
     }
 
     const form = await prisma.form.findUnique({
-      where: {
-        form_id: formId
-      },
+      where: { form_id: formId },
       include: {
         department: true,
         templates: {
@@ -28,6 +26,12 @@ export async function GET(
             version: 'desc'
           },
           take: 1
+        },
+        workflowTasks: {
+          select: {
+            name: true,
+            stage: true
+          }
         }
       }
     })
@@ -45,17 +49,13 @@ export async function GET(
       title: form.title,
       description: form.description || '',
       instructions: form.instructions || '',
+      type: form.type,
       department: {
         name: form.department.name,
-        color: form.department.color,
-        department_id: form.department.department_id
+        color: form.department.color
       },
-      templates: form.templates.map(template => ({
-        template_id: template.template_id,
-        name: template.name,
-        fields: template.fields,
-        layout: template.layout
-      }))
+      templates: form.templates,
+      workflowTasks: form.workflowTasks
     }
 
     return NextResponse.json(transformedForm)
@@ -81,66 +81,46 @@ export async function PUT(
       )
     }
 
-    const body = await request.json()
-    const { title, description, instructions, department_id, fields } = body
+    const data = await request.json()
 
-    // Update the form
+    // Update form
     const updatedForm = await prisma.form.update({
-      where: {
-        form_id: formId
-      },
+      where: { form_id: formId },
       data: {
-        title,
-        description,
-        instructions,
-        department_id,
+        title: data.title,
+        description: data.description,
+        instructions: data.instructions,
+        type: data.type,
+        department_id: data.department_id
       }
     })
 
-    // Create a new template version
-    const newTemplate = await prisma.formTemplate.create({
-      data: {
-        form_id: formId,
-        name: `${title} Template`,
-        description: `Template for ${title}`,
-        fields: {
-          items: fields.map((field: any) => ({
-            id: field.id,
-            type: field.type,
-            label: field.label,
-            required: field.required || false,
-            placeholder: field.placeholder || '',
-            options: field.options || []
-          }))
+    // Create new template version
+    if (data.template) {
+      // Deactivate old templates
+      await prisma.formTemplate.updateMany({
+        where: {
+          form_id: formId,
+          is_active: true
         },
-        layout: {
-          sections: [
-            {
-              title: 'Tasks',
-              description: 'Complete all tasks in order',
-              fields: fields.map((field: any) => field.id)
-            }
-          ]
-        },
-        version: {
-          increment: 1
-        },
-        is_active: true
-      }
-    })
-
-    // Deactivate old templates
-    await prisma.formTemplate.updateMany({
-      where: {
-        form_id: formId,
-        template_id: {
-          not: newTemplate.template_id
+        data: {
+          is_active: false
         }
-      },
-      data: {
-        is_active: false
-      }
-    })
+      })
+
+      // Create new template
+      await prisma.formTemplate.create({
+        data: {
+          form_id: formId,
+          name: data.template.name,
+          description: data.template.description,
+          fields: data.template.fields,
+          layout: data.template.layout,
+          version: data.template.version,
+          is_active: true
+        }
+      })
+    }
 
     return NextResponse.json(updatedForm)
   } catch (error) {

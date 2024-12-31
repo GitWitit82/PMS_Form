@@ -14,6 +14,12 @@ export async function GET() {
             version: 'desc'
           },
           take: 1
+        },
+        workflowTasks: {
+          select: {
+            name: true,
+            stage: true
+          }
         }
       },
       orderBy: {
@@ -26,10 +32,12 @@ export async function GET() {
       form_id: form.form_id,
       title: form.title,
       description: form.description || '',
+      type: form.type,
       department: {
         name: form.department.name,
         color: form.department.color
-      }
+      },
+      workflowTasks: form.workflowTasks
     }))
 
     return NextResponse.json(transformedForms)

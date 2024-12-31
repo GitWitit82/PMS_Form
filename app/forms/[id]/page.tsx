@@ -11,27 +11,42 @@ import { FormHeader } from '@/components/forms/form-header'
 import { FormProjectInfo } from '@/components/forms/form-project-info'
 import { FormChecklist } from '@/components/forms/form-checklist'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Card } from '@/components/ui/card'
 import { toast } from 'sonner'
-import { Save } from 'lucide-react'
+import { Save, ListChecks } from 'lucide-react'
 
 interface FormTemplate {
   template_id: number
   name: string
   fields: {
-    items: Array<{
-      id: number
+    sections: string[]
+    rowFields: Array<{
+      name: string
       type: string
       label: string
-      required: boolean
+    }>
+    rows: Array<{
+      id: number
+      task: string
+      completed: boolean
+      notes: string
     }>
   }
   layout: {
-    sections: Array<{
-      title: string
-      description: string
-      fields: number[]
-    }>
+    projectInfo: {
+      fields: Array<{
+        name: string
+        type: string
+        label: string
+      }>
+    }
   }
+}
+
+interface WorkflowTask {
+  name: string
+  stage: string
 }
 
 interface Form {
@@ -39,11 +54,26 @@ interface Form {
   title: string
   description: string
   instructions: string
+  type: string
   department: {
     name: string
     color: string
   }
   templates: FormTemplate[]
+  workflowTasks: WorkflowTask[]
+}
+
+const getFormTypeLabel = (type: string) => {
+  switch (type) {
+    case 'CHECKLIST':
+      return 'Checklist'
+    case 'DATA_ENTRY':
+      return 'Data Entry'
+    case 'APPROVAL':
+      return 'Approval'
+    default:
+      return type
+  }
 }
 
 export default function FormDetailPage() {
@@ -72,8 +102,8 @@ export default function FormDetailPage() {
         setForm(data)
         
         // Initialize checked items
-        if (data.templates[0]?.fields.items) {
-          const initialCheckedItems = data.templates[0].fields.items.reduce(
+        if (data.templates[0]?.fields.rows) {
+          const initialCheckedItems = data.templates[0].fields.rows.reduce(
             (acc: Record<number, boolean>, item: { id: number }) => {
               acc[item.id] = false
               return acc
@@ -167,7 +197,39 @@ export default function FormDetailPage() {
           onChange={handleProjectInfoChange}
         />
       }
-      instructions={form.instructions}
+      instructions={
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="text-sm">
+              {getFormTypeLabel(form.type)}
+            </Badge>
+            {form.workflowTasks && form.workflowTasks.length > 0 && (
+              <Badge variant="outline" className="text-sm">
+                Used in {form.workflowTasks.length} workflow task{form.workflowTasks.length !== 1 ? 's' : ''}
+              </Badge>
+            )}
+          </div>
+          {form.instructions && (
+            <div className="text-sm text-muted-foreground">
+              {form.instructions}
+            </div>
+          )}
+          {form.workflowTasks && form.workflowTasks.length > 0 && (
+            <Card className="p-4">
+              <h3 className="text-sm font-medium mb-2">Workflow Tasks</h3>
+              <ul className="space-y-2">
+                {form.workflowTasks.map((task, index) => (
+                  <li key={index} className="flex items-center gap-2 text-sm">
+                    <ListChecks className="h-4 w-4 text-muted-foreground" />
+                    <span>{task.name}</span>
+                    <span className="text-muted-foreground">({task.stage})</span>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
+        </div>
+      }
       footer={
         <div className="flex justify-end px-6 py-4">
           <Button onClick={handleSubmit}>
@@ -177,13 +239,11 @@ export default function FormDetailPage() {
         </div>
       }
     >
-      <div className="p-6">
-        <FormChecklist
-          items={template.fields.items}
-          checkedItems={checkedItems}
-          onCheck={handleCheckItem}
-        />
-      </div>
+      <FormChecklist
+        items={template.fields.rows || []}
+        instructions={form.instructions}
+        onItemChange={handleCheckItem}
+      />
     </FormLayout>
   )
 } 

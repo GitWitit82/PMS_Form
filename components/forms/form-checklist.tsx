@@ -10,8 +10,9 @@ import { cn } from '@/lib/utils'
 
 interface ChecklistItem {
   id: number
-  text: string
-  checked?: boolean
+  task: string
+  completed: boolean
+  notes: string
 }
 
 interface FormChecklistProps {
@@ -23,7 +24,7 @@ interface FormChecklistProps {
 }
 
 export function FormChecklist({
-  items,
+  items = [],
   instructions,
   onItemChange,
   readOnly = false,
@@ -36,7 +37,7 @@ export function FormChecklist({
   }
 
   return (
-    <div className={cn('space-y-6 p-6', className)}>
+    <div className={cn('space-y-6', className)}>
       {/* Instructions */}
       {instructions && (
         <p className="text-sm italic text-muted-foreground">
@@ -51,7 +52,7 @@ export function FormChecklist({
 
       {/* Checklist Items */}
       <div className="space-y-4">
-        {items.map((item) => (
+        {items?.map((item) => (
           <div
             key={item.id}
             className="flex items-start space-x-4 text-sm"
@@ -63,7 +64,7 @@ export function FormChecklist({
             <div className="flex-shrink-0 pt-1">
               <Checkbox
                 id={`item-${item.id}`}
-                checked={item.checked}
+                checked={item.completed}
                 onCheckedChange={(checked) =>
                   handleCheckboxChange(item.id, checked as boolean)
                 }
@@ -76,7 +77,7 @@ export function FormChecklist({
               htmlFor={`item-${item.id}`}
               className="flex-1 leading-tight cursor-pointer"
             >
-              {item.text}
+              {item.task}
             </Label>
           </div>
         ))}

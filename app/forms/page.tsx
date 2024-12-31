@@ -6,9 +6,10 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { FileText, ChevronRight, Plus, Pencil } from 'lucide-react'
-import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { FileText, ChevronRight, Plus, Pencil, ListChecks, FileInput, FileCheck } from 'lucide-react'
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 
 interface Department {
@@ -16,11 +17,53 @@ interface Department {
   color: string
 }
 
+interface WorkflowTask {
+  name: string
+  stage: string
+}
+
 interface Form {
   form_id: number
   title: string
   description: string
+  type: string
   department: Department
+  workflowTasks: WorkflowTask[]
+}
+
+const getFormIcon = (type: string) => {
+  switch (type) {
+    case 'CHECKLIST':
+      return <ListChecks className="h-5 w-5 text-primary" />
+    case 'DATA_ENTRY':
+      return <FileInput className="h-5 w-5 text-primary" />
+    case 'APPROVAL':
+      return <FileCheck className="h-5 w-5 text-primary" />
+    default:
+      return <FileText className="h-5 w-5 text-primary" />
+  }
+}
+
+const getFormTypeLabel = (type: string) => {
+  switch (type) {
+    case 'CHECKLIST':
+      return 'Checklist'
+    case 'DATA_ENTRY':
+      return 'Data Entry'
+    case 'APPROVAL':
+      return 'Approval'
+    default:
+      return type
+  }
+}
+
+const getFormLink = (form: Form) => {
+  // Special case for panel form
+  if (form.title === 'PRINT/PANEL CHECKLIST') {
+    return `/forms/panel`
+  }
+  // Default case
+  return `/forms/${form.form_id}`
 }
 
 export default function FormsPage() {
@@ -91,7 +134,7 @@ export default function FormsPage() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="h-10 w-10 rounded-full flex items-center justify-center bg-primary/10">
-                    <FileText className="h-5 w-5 text-primary" />
+                    {getFormIcon(form.type)}
                   </div>
                   <div className="flex gap-2">
                     <Link href={`/forms/builder/${form.form_id}`}>
@@ -99,7 +142,7 @@ export default function FormsPage() {
                         <Pencil className="h-4 w-4" />
                       </Button>
                     </Link>
-                    <Link href={`/forms/${form.form_id}`}>
+                    <Link href={getFormLink(form)}>
                       <Button variant="ghost" size="icon">
                         <ChevronRight className="h-5 w-5 text-muted-foreground" />
                       </Button>
@@ -108,13 +151,31 @@ export default function FormsPage() {
                 </div>
                 <CardTitle className="mt-4">{form.title}</CardTitle>
                 <CardDescription>{form.description}</CardDescription>
-                <div className="mt-2">
-                  <span 
-                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium text-white"
-                    style={{ backgroundColor: form.department.color }}
-                  >
-                    {form.department.name}
-                  </span>
+                <div className="mt-2 space-y-2">
+                  <div className="flex flex-wrap gap-2">
+                    <span 
+                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium text-white"
+                      style={{ backgroundColor: form.department.color }}
+                    >
+                      {form.department.name}
+                    </span>
+                    <Badge variant="secondary">
+                      {getFormTypeLabel(form.type)}
+                    </Badge>
+                  </div>
+                  {form.workflowTasks && form.workflowTasks.length > 0 && (
+                    <div className="text-sm text-muted-foreground">
+                      <p className="font-medium">Used in workflow tasks:</p>
+                      <ul className="mt-1 space-y-1">
+                        {form.workflowTasks.map((task, index) => (
+                          <li key={index} className="flex items-center gap-2">
+                            <span className="text-xs">{task.name}</span>
+                            <span className="text-xs text-muted-foreground">({task.stage})</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               </CardHeader>
             </Card>
