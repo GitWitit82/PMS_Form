@@ -1,12 +1,12 @@
 /**
  * FormBuilder Component
- * A component for creating and editing forms
+ * A component for creating and editing forms with a table layout
  */
 'use client'
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Trash2, GripVertical, Save } from 'lucide-react'
+import { Plus, Trash2, Save, MoveUp, MoveDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -20,7 +20,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Card, CardContent } from '@/components/ui/card'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { toast } from 'sonner'
 
 interface Department {
@@ -135,6 +142,22 @@ export function FormBuilder({ formId, onSave }: FormBuilderProps) {
     setFields(fields.filter(field => field.id !== id))
   }
 
+  const moveField = (id: string, direction: 'up' | 'down') => {
+    const index = fields.findIndex(field => field.id === id)
+    if (
+      (direction === 'up' && index === 0) ||
+      (direction === 'down' && index === fields.length - 1)
+    ) {
+      return
+    }
+
+    const newFields = [...fields]
+    const newIndex = direction === 'up' ? index - 1 : index + 1
+    const [movedField] = newFields.splice(index, 1)
+    newFields.splice(newIndex, 0, movedField)
+    setFields(newFields)
+  }
+
   const handleSave = async () => {
     if (!title || !selectedDepartmentId) {
       toast.error('Please fill in all required fields')
@@ -186,140 +209,183 @@ export function FormBuilder({ formId, onSave }: FormBuilderProps) {
     d => d.department_id.toString() === selectedDepartmentId
   )
 
-  const formContent = (
-    <div className="space-y-6">
-      {fields.map((field, index) => (
-        <Card key={field.id} className="relative">
-          <CardContent className="pt-6">
-            <div className="absolute left-2 top-1/2 -translate-y-1/2 cursor-move opacity-50 hover:opacity-100">
-              <GripVertical className="h-5 w-5" />
-            </div>
-            <div className="ml-8 space-y-4">
-              <div className="flex items-center justify-between">
-                <Input
-                  value={field.label}
-                  onChange={(e) => updateField(field.id, { label: e.target.value })}
-                  placeholder="Field label"
-                  className="flex-1 mr-2"
-                />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => removeField(field.id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="flex gap-4">
-                <div className="flex-1">
-                  <Label>Type</Label>
-                  <Select
-                    value={field.type}
-                    onValueChange={(value: FormField['type']) => 
-                      updateField(field.id, { type: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="text">Text</SelectItem>
-                      <SelectItem value="textarea">Text Area</SelectItem>
-                      <SelectItem value="checkbox">Checkbox</SelectItem>
-                      <SelectItem value="select">Select</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Label>Required</Label>
-                  <input
-                    type="checkbox"
-                    checked={field.required}
-                    onChange={(e) => 
-                      updateField(field.id, { required: e.target.checked })
-                    }
-                  />
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-      <Button onClick={addField} variant="outline" className="w-full">
-        <Plus className="h-4 w-4 mr-2" />
-        Add Field
-      </Button>
-    </div>
-  )
-
   return (
     <FormLayout
       header={
-        <FormHeader 
-          title={title || 'New Form'} 
-          departmentName={selectedDepartment?.name}
-          departmentColor={selectedDepartment?.color}
+        <FormHeader
+          title={title || 'New Form'}
+          departmentName={selectedDepartment?.name || 'Select Department'}
+          departmentColor={selectedDepartment?.color || '#2563eb'}
         />
       }
-      projectInfo={
-        <div className="space-y-4 p-6">
-          <div className="grid gap-2">
-            <Label>Form Title</Label>
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter form title"
-            />
+      instructions={
+        <div className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="title">Form Title</Label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Enter form title"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="department">Department</Label>
+              <Select
+                value={selectedDepartmentId}
+                onValueChange={setSelectedDepartmentId}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select department" />
+                </SelectTrigger>
+                <SelectContent>
+                  {departments.map((dept) => (
+                    <SelectItem
+                      key={dept.department_id}
+                      value={dept.department_id.toString()}
+                    >
+                      {dept.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div className="grid gap-2">
-            <Label>Description</Label>
+          <div className="space-y-2">
+            <Label htmlFor="description">Description</Label>
             <Textarea
+              id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Enter form description"
+              rows={2}
             />
           </div>
-          <div className="grid gap-2">
-            <Label>Instructions</Label>
+          <div className="space-y-2">
+            <Label htmlFor="instructions">Instructions</Label>
             <Textarea
+              id="instructions"
               value={instructions}
               onChange={(e) => setInstructions(e.target.value)}
               placeholder="Enter form instructions"
+              rows={2}
             />
-          </div>
-          <div className="grid gap-2">
-            <Label>Department</Label>
-            <Select value={selectedDepartmentId} onValueChange={setSelectedDepartmentId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select department" />
-              </SelectTrigger>
-              <SelectContent>
-                {departments.map((dept) => (
-                  <SelectItem key={dept.department_id} value={dept.department_id.toString()}>
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="h-3 w-3 rounded-full"
-                        style={{ backgroundColor: dept.color }}
-                      />
-                      {dept.name}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
         </div>
       }
       footer={
-        <div className="flex justify-end">
-          <Button onClick={handleSave} disabled={loading || !title || !selectedDepartmentId}>
+        <div className="flex justify-end px-6 py-4">
+          <Button onClick={handleSave} disabled={loading}>
             <Save className="h-4 w-4 mr-2" />
-            {loading ? 'Saving...' : formId ? 'Update Form' : 'Save Form'}
+            Save Form
           </Button>
         </div>
       }
     >
-      {formContent}
+      <div className="p-6 space-y-6">
+        <div className="flex justify-between items-center">
+          <h2 className="text-lg font-semibold">Form Fields</h2>
+          <Button onClick={addField} variant="outline" size="sm">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Field
+          </Button>
+        </div>
+
+        <div className="border rounded-lg">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[50px]">Order</TableHead>
+                <TableHead>Label</TableHead>
+                <TableHead className="w-[150px]">Type</TableHead>
+                <TableHead className="w-[100px]">Required</TableHead>
+                <TableHead className="w-[100px]">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {fields.map((field, index) => (
+                <TableRow key={field.id}>
+                  <TableCell>
+                    <div className="flex flex-col gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => moveField(field.id, 'up')}
+                        disabled={index === 0}
+                      >
+                        <MoveUp className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => moveField(field.id, 'down')}
+                        disabled={index === fields.length - 1}
+                      >
+                        <MoveDown className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      value={field.label}
+                      onChange={(e) => updateField(field.id, { label: e.target.value })}
+                      placeholder="Field label"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Select
+                      value={field.type}
+                      onValueChange={(value: FormField['type']) => 
+                        updateField(field.id, { type: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="text">Text</SelectItem>
+                        <SelectItem value="textarea">Text Area</SelectItem>
+                        <SelectItem value="checkbox">Checkbox</SelectItem>
+                        <SelectItem value="select">Select</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center justify-center">
+                      <input
+                        type="checkbox"
+                        checked={field.required}
+                        onChange={(e) => 
+                          updateField(field.id, { required: e.target.checked })
+                        }
+                        className="h-4 w-4"
+                      />
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeField(field.id)}
+                      className="text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {fields.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-6">
+                    No fields added yet. Click "Add Field" to start building your form.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
     </FormLayout>
   )
 } 

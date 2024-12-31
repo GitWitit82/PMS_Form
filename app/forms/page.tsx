@@ -1,15 +1,22 @@
 /**
  * Forms Index Page
- * Lists all available forms and checklists
+ * Lists all available forms and checklists in a table layout
  */
 'use client'
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { FileText, ChevronRight, Plus, Pencil, ListChecks, FileInput, FileCheck } from 'lucide-react'
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
+import { FileText, Plus, Pencil, ListChecks, FileInput, FileCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { toast } from 'sonner'
 
 interface Department {
@@ -110,16 +117,9 @@ export default function FormsPage() {
       </div>
 
       {loading ? (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="space-y-4">
           {[...Array(6)].map((_, i) => (
-            <Card key={i} className="animate-pulse">
-              <CardHeader>
-                <div className="h-10 w-10 rounded-full bg-muted"></div>
-                <div className="h-6 w-3/4 bg-muted rounded mt-4"></div>
-                <div className="h-4 w-full bg-muted rounded mt-2"></div>
-                <div className="h-5 w-20 bg-muted rounded mt-2"></div>
-              </CardHeader>
-            </Card>
+            <div key={i} className="h-16 bg-muted animate-pulse rounded-lg" />
           ))}
         </div>
       ) : forms.length === 0 ? (
@@ -128,58 +128,61 @@ export default function FormsPage() {
           <p className="text-sm text-muted-foreground mt-1">Create a new form to get started</p>
         </div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {forms.map((form) => (
-            <Card key={form.form_id} className="hover:bg-muted/50 transition-colors">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="h-10 w-10 rounded-full flex items-center justify-center bg-primary/10">
+        <div className="border rounded-lg">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[40px]"></TableHead>
+                <TableHead>Title</TableHead>
+                <TableHead>Description</TableHead>
+                <TableHead className="w-[120px]">Department</TableHead>
+                <TableHead className="w-[100px]">Type</TableHead>
+                <TableHead className="w-[100px]">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {forms.map((form) => (
+                <TableRow key={form.form_id}>
+                  <TableCell>
                     {getFormIcon(form.type)}
-                  </div>
-                  <div className="flex gap-2">
-                    <Link href={`/forms/builder/${form.form_id}`}>
-                      <Button variant="ghost" size="icon">
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    </Link>
-                    <Link href={getFormLink(form)}>
-                      <Button variant="ghost" size="icon">
-                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-                <CardTitle className="mt-4">{form.title}</CardTitle>
-                <CardDescription>{form.description}</CardDescription>
-                <div className="mt-2 space-y-2">
-                  <div className="flex flex-wrap gap-2">
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    {form.title}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {form.description}
+                  </TableCell>
+                  <TableCell>
                     <span 
                       className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium text-white"
                       style={{ backgroundColor: form.department.color }}
                     >
                       {form.department.name}
                     </span>
+                  </TableCell>
+                  <TableCell>
                     <Badge variant="secondary">
                       {getFormTypeLabel(form.type)}
                     </Badge>
-                  </div>
-                  {form.workflowTasks && form.workflowTasks.length > 0 && (
-                    <div className="text-sm text-muted-foreground">
-                      <p className="font-medium">Used in workflow tasks:</p>
-                      <ul className="mt-1 space-y-1">
-                        {form.workflowTasks.map((task, index) => (
-                          <li key={index} className="flex items-center gap-2">
-                            <span className="text-xs">{task.name}</span>
-                            <span className="text-xs text-muted-foreground">({task.stage})</span>
-                          </li>
-                        ))}
-                      </ul>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Link href={`/forms/builder/${form.form_id}`}>
+                        <Button variant="ghost" size="icon">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </Link>
+                      <Link href={getFormLink(form)}>
+                        <Button variant="default" size="sm">
+                          View
+                        </Button>
+                      </Link>
                     </div>
-                  )}
-                </div>
-              </CardHeader>
-            </Card>
-          ))}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       )}
     </div>
