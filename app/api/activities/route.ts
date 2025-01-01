@@ -1,54 +1,112 @@
 /**
- * Activities API Routes
- * Handles logging and retrieving user activities
+ * Activities API Route
+ * Handles activity logging and retrieval
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getCurrentUser } from '@/lib/session'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 
 /**
- * GET /api/activities
- * Retrieves activities based on query parameters
+ * POST /api/activities
+ * Creates a new activity log
  */
-export async function GET(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    const user = await getCurrentUser()
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
     }
 
-    const searchParams = req.nextUrl.searchParams
-    const userId = searchParams.get('userId')
-    const entityType = searchParams.get('entityType')
-    const entityId = searchParams.get('entityId')
-    const limit = parseInt(searchParams.get('limit') || '10')
+    const data = await request.json()
 
-    const where: any = {}
-    if (userId) where.user_id = parseInt(userId)
-    if (entityType) where.entity_type = entityType
-    if (entityId) where.entity_id = parseInt(entityId)
+    // Validate required fields
+    if (!data.type || !data.entityType || !data.entityId || !data.action) {
+      return NextResponse.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      )
+    }
 
-    const activities = await prisma.activity.findMany({
-      where,
-      take: limit,
-      orderBy: {
-        created_at: 'desc'
+    const activity = await prisma.activity.create({
+      data: {
+        user_id: parseInt(session.user.id),
+        type: data.type,
+        entity_type: data.entityType,
+        entity_id: data.entityId,
+        action: data.action,
+        details: data.details || {},
       },
       include: {
         user: {
           select: {
             username: true,
-            email: true
-          }
-        }
-      }
+            email: true,
+          },
+        },
+      },
+    })
+
+    return NextResponse.json({ data: activity })
+  } catch (error) {
+    console.error('Error creating activity:', error)
+    return NextResponse.json(
+      { error: 'Failed to create activity' },
+      { status: 500 }
+    )
+  }
+}
+
+/**
+ * GET /api/activities
+ * Retrieves activity logs with optional filtering
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    const { searchParams } = new URL(request.url)
+    const limit = parseInt(searchParams.get('limit') || '10')
+    const entityType = searchParams.get('entityType')
+    const entityId = searchParams.get('entityId')
+
+    const where = {
+      ...(entityType && entityId ? {
+        entity_type: entityType,
+        entity_id: parseInt(entityId),
+      } : {}),
+    }
+
+    const activities = await prisma.activity.findMany({
+      where,
+      include: {
+        user: {
+          select: {
+            username: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: {
+        created_at: 'desc',
+      },
+      take: limit,
     })
 
     return NextResponse.json({ data: activities })
   } catch (error) {
     console.error('Error fetching activities:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Failed to fetch activities' },
       { status: 500 }
     )
   }

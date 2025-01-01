@@ -1,39 +1,20 @@
 /**
- * Projects API Routes
+ * Projects API Route
  * Handles CRUD operations for projects
  */
 import { NextRequest, NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
-import { z } from 'zod'
-
-const projectSchema = z.object({
-  name: z.string().min(1, 'Project name is required'),
-  vin: z.string().optional(),
-  invoice_number: z.string().optional(),
-  project_type: z.object({
-    full_wrap: z.boolean().default(false),
-    partial: z.boolean().default(false),
-    decals: z.boolean().default(false),
-    perf: z.boolean().default(false),
-    removal: z.boolean().default(false),
-    third_party: z.boolean().default(false),
-    bodywork: z.boolean().default(false),
-  }),
-  customer_id: z.number(),
-  description: z.string().optional(),
-  status: z.string(),
-})
 
 /**
  * GET /api/projects
- * Fetch all projects
+ * Fetches all projects from the database
  */
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
-    if (!session?.user) {
+    if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -42,11 +23,8 @@ export async function GET() {
 
     const projects = await prisma.project.findMany({
       include: {
-        Customer: {
-          select: {
-            name: true,
-          },
-        },
+        Customer: true,
+        tasks: true,
       },
       orderBy: {
         created_at: 'desc',
@@ -65,49 +43,45 @@ export async function GET() {
 
 /**
  * POST /api/projects
- * Create a new project
+ * Creates a new project
  */
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session?.user) {
+    if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       )
     }
 
-    const body = await request.json()
-    const validatedData = projectSchema.parse(body)
+    const data = await request.json()
+
+    // Validate required fields
+    if (!data.name || !data.description || !data.customer_id || !data.status) {
+      return NextResponse.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      )
+    }
 
     const project = await prisma.project.create({
       data: {
-        name: validatedData.name,
-        vin_number: validatedData.vin,
-        invoice_number: validatedData.invoice_number,
-        customer_id: validatedData.customer_id,
-        description: validatedData.description,
-        status: validatedData.status,
-        project_type: validatedData.project_type,
+        name: data.name,
+        description: data.description,
+        customer_id: data.customer_id,
+        status: data.status,
+        vin_number: data.vin_number,
+        invoice_number: data.invoice_number,
       },
       include: {
-        Customer: {
-          select: {
-            name: true,
-          },
-        },
+        Customer: true,
       },
     })
 
     return NextResponse.json({ data: project })
   } catch (error) {
     console.error('Error creating project:', error)
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid project data', details: error.errors },
-        { status: 400 }
-      )
-    }
     return NextResponse.json(
       { error: 'Failed to create project' },
       { status: 500 }

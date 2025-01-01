@@ -1,208 +1,216 @@
 /**
  * Project Form Component
- * A form component for creating and managing projects with customer association and project type selection.
- * 
- * @component
- * @example
- * ```tsx
- * <ProjectForm onSuccess={() => console.log('Project created')} />
- * ```
+ * Handles project creation and updates with proper error handling
  */
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
 import { Button } from '@/components/ui/button'
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Checkbox } from '@/components/ui/checkbox'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form'
-import { toast } from 'sonner'
+} from '@/components/ui/select'
+import { toast } from '@/components/ui/use-toast'
+import { logActivity } from '@/lib/activity-logger'
 
-/**
- * Zod schema for project validation
- * Defines the structure and validation rules for project data
- */
-const projectSchema = z.object({
-  name: z.string().min(1, 'Project name is required'),
-  vin: z.string().optional().default(''),
-  invoice_number: z.string().optional().default(''),
-  project_type: z.object({
-    full_wrap: z.boolean().default(false),
-    partial: z.boolean().default(false),
-    decals: z.boolean().default(false),
-    perf: z.boolean().default(false),
-    removal: z.boolean().default(false),
-    third_party: z.boolean().default(false),
-    bodywork: z.boolean().default(false),
+const projectFormSchema = z.object({
+  name: z.string().min(2, {
+    message: 'Project name must be at least 2 characters.',
   }),
-  customer_id: z.number({
-    required_error: 'Customer is required',
+  description: z.string().min(10, {
+    message: 'Project description must be at least 10 characters.',
   }),
-  description: z.string().optional().default(''),
-  status: z.string().default('Not Started'),
+  customer_id: z.string({
+    required_error: 'Please select a customer.',
+  }),
+  status: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'ON_HOLD'], {
+    required_error: 'Please select a status.',
+  }),
+  vin_number: z.string().optional(),
+  invoice_number: z.string().optional(),
 })
 
-/**
- * Customer interface
- * Defines the structure for customer data used in the form
- */
-interface Customer {
-  customer_id: number
-  name: string
-}
+type ProjectFormValues = z.infer<typeof projectFormSchema>
 
-/**
- * ProjectForm component props
- */
 interface ProjectFormProps {
-  /** Callback function called after successful project creation */
+  customers: Array<{ customer_id: number; name: string }> | undefined
+  initialData?: {
+    project_id: number
+    name: string
+    description?: string | null
+    customer_id: number
+    start_date?: Date | null
+    end_date?: Date | null
+    status: string
+    vin_number?: string | null
+    invoice_number?: string | null
+  }
   onSuccess?: () => void
 }
 
-/**
- * ProjectForm Component
- * Renders a form for creating new projects with customer selection and project type options.
- * 
- * @param props - Component props
- * @param props.onSuccess - Optional callback function called after successful project creation
- */
-export function ProjectForm({ onSuccess }: ProjectFormProps) {
+export function ProjectForm({ customers = [], initialData, onSuccess }: ProjectFormProps) {
   const router = useRouter()
-  const [loading, setLoading] = useState(false)
-  const [customers, setCustomers] = useState<Customer[]>([])
+  const [isLoading, setIsLoading] = useState(false)
 
-  // Fetch customers on component mount
-  useEffect(() => {
-    async function fetchCustomers() {
-      try {
-        const response = await fetch('/api/customers')
-        const result = await response.json()
-        if (!response.ok) {
-          throw new Error(result.error || 'Failed to fetch customers')
-        }
-        setCustomers(result.data || [])
-      } catch (error) {
-        console.error('Error fetching customers:', error)
-        toast.error('Failed to load customers')
-      }
-    }
-
-    fetchCustomers()
-  }, [])
-
-  // Initialize form with react-hook-form
-  const form = useForm<z.infer<typeof projectSchema>>({
-    resolver: zodResolver(projectSchema),
+  const form = useForm<z.infer<typeof projectFormSchema>>({
+    resolver: zodResolver(projectFormSchema),
     defaultValues: {
-      name: '',
-      vin: '',
-      invoice_number: '',
-      project_type: {
-        full_wrap: false,
-        partial: false,
-        decals: false,
-        perf: false,
-        removal: false,
-        third_party: false,
-        bodywork: false,
-      },
-      description: '',
-      status: 'Not Started',
+      name: initialData?.name || '',
+      description: initialData?.description || '',
+      customer_id: initialData?.customer_id.toString() || '',
+      status: initialData?.status || 'PENDING',
+      vin_number: initialData?.vin_number || '',
+      invoice_number: initialData?.invoice_number || '',
     },
   })
 
-  /**
-   * Handle form submission
-   * Creates a new project with the provided data
-   * 
-   * @param data - Form data matching the project schema
-   */
-  const onSubmit = async (data: z.infer<typeof projectSchema>) => {
+  const onSubmit = async (data: z.infer<typeof projectFormSchema>) => {
     try {
-      setLoading(true)
-      const response = await fetch('/api/projects', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      })
+      setIsLoading(true)
+      const response = await fetch(
+        initialData
+          ? `/api/projects/${initialData.project_id}`
+          : '/api/projects',
+        {
+          method: initialData ? 'PATCH' : 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...data,
+            customer_id: parseInt(data.customer_id),
+            vin_number: data.vin_number || null,
+            invoice_number: data.invoice_number || null,
+          }),
+        }
+      )
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.message || 'Failed to create project')
+        throw new Error(error.message || 'Something went wrong')
       }
 
       const result = await response.json()
-      toast.success('Project created successfully')
-      router.refresh()
-      onSuccess?.()
-      router.push(`/projects/${result.data.project_id}`)
+
+      try {
+        // Log the activity
+        await logActivity({
+          type: 'project',
+          entityType: 'project',
+          entityId: initialData?.project_id || result.data.project_id,
+          action: initialData ? 'update' : 'create',
+          details: {
+            name: data.name,
+            customer: customers.find(c => c.customer_id === parseInt(data.customer_id))?.name,
+            status: data.status,
+          },
+        })
+      } catch (error) {
+        console.error('Failed to log activity:', error)
+        // Don't throw here, as the main operation succeeded
+      }
+
+      toast({
+        title: initialData ? 'Project updated' : 'Project created',
+        description: initialData
+          ? 'Your project has been updated successfully.'
+          : 'Your new project has been created successfully.',
+      })
+
+      if (onSuccess) {
+        onSuccess()
+      } else {
+        router.push(`/projects/${initialData ? initialData.project_id : result.data.project_id}`)
+        router.refresh()
+      }
     } catch (error) {
-      console.error('Error creating project:', error)
-      toast.error(error instanceof Error ? error.message : 'Failed to create project')
+      console.error('Error submitting project:', error)
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to save project',
+        variant: 'destructive',
+      })
     } finally {
-      setLoading(false)
+      setIsLoading(false)
     }
   }
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Project Name Field */}
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>PROJECT:</FormLabel>
-                <FormControl>
-                  <Input {...field} value={field.value || ''} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Project Name</FormLabel>
+              <FormControl>
+                <Input placeholder="Enter project name" {...field} />
+              </FormControl>
+              <FormDescription>
+                A descriptive name for your project.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-          {/* Customer Selection Field */}
-          <FormField
-            control={form.control}
-            name="customer_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>CUSTOMER:</FormLabel>
-                <Select 
-                  onValueChange={(value) => field.onChange(parseInt(value))}
-                  defaultValue={field.value?.toString()}
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Enter project description"
+                  {...field}
+                />
+              </FormControl>
+              <FormDescription>
+                A brief description of the project scope and objectives.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="customer_id"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Customer</FormLabel>
+              <FormControl>
+                <Select
+                  value={field.value}
+                  onValueChange={field.onChange}
                 >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a customer" />
-                    </SelectTrigger>
-                  </FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a customer" />
+                  </SelectTrigger>
                   <SelectContent>
-                    {Array.isArray(customers) && customers.map((customer) => (
-                      <SelectItem 
-                        key={customer.customer_id} 
+                    {customers?.map((customer) => (
+                      <SelectItem
+                        key={customer.customer_id}
                         value={customer.customer_id.toString()}
                       >
                         {customer.name}
@@ -210,86 +218,88 @@ export function ProjectForm({ onSuccess }: ProjectFormProps) {
                     ))}
                   </SelectContent>
                 </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+              </FormControl>
+              <FormDescription>
+                The customer associated with this project.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-          {/* Invoice Number Field */}
-          <FormField
-            control={form.control}
-            name="invoice_number"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>INVOICE #:</FormLabel>
-                <FormControl>
-                  <Input {...field} value={field.value || ''} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        <FormField
+          control={form.control}
+          name="status"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Status</FormLabel>
+              <FormControl>
+                <Select
+                  value={field.value}
+                  onValueChange={field.onChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select project status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PENDING">Pending</SelectItem>
+                    <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                    <SelectItem value="COMPLETED">Completed</SelectItem>
+                    <SelectItem value="ON_HOLD">On Hold</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FormControl>
+              <FormDescription>
+                Current status of the project.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-          {/* VIN Number Field */}
-          <FormField
-            control={form.control}
-            name="vin"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>VIN #:</FormLabel>
-                <FormControl>
-                  <Input {...field} value={field.value || ''} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        <FormField
+          control={form.control}
+          name="vin_number"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>VIN Number</FormLabel>
+              <FormControl>
+                <Input placeholder="Enter VIN number (optional)" {...field} />
+              </FormControl>
+              <FormDescription>
+                Vehicle Identification Number if applicable.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-          {/* Project Type Selection */}
-          <div className="md:col-span-2">
-            <Label className="text-xs font-medium">Project Type:</Label>
-            <div className="mt-2 flex flex-wrap gap-4">
-              {[
-                { id: 'full_wrap' as const, label: 'FULL WRAP' },
-                { id: 'partial' as const, label: 'PARTIAL' },
-                { id: 'decals' as const, label: 'DECALS' },
-                { id: 'perf' as const, label: 'PERF' },
-                { id: 'removal' as const, label: 'REMOVAL' },
-                { id: 'third_party' as const, label: '3RD PARTY' },
-                { id: 'bodywork' as const, label: 'BODYWORK' },
-              ].map(({ id, label }) => (
-                <FormField
-                  key={id}
-                  control={form.control}
-                  name={`project_type.${id}` as `project_type.${typeof id}`}
-                  render={({ field }) => (
-                    <FormItem className="flex items-center space-x-2">
-                      <FormControl>
-                        <Checkbox
-                          checked={Boolean(field.value)}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <FormLabel className="text-xs font-normal">
-                        {label}
-                      </FormLabel>
-                    </FormItem>
-                  )}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
+        <FormField
+          control={form.control}
+          name="invoice_number"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Invoice Number</FormLabel>
+              <FormControl>
+                <Input placeholder="Enter invoice number (optional)" {...field} />
+              </FormControl>
+              <FormDescription>
+                Associated invoice number if available.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-        {/* Form Submit Button */}
-        <div className="flex justify-end gap-4">
-          <Button
-            type="submit"
-            disabled={loading}
-          >
-            {loading ? 'Creating...' : 'Create Project'}
-          </Button>
-        </div>
+        <Button type="submit" disabled={isLoading}>
+          {isLoading ? (
+            'Saving...'
+          ) : initialData ? (
+            'Update Project'
+          ) : (
+            'Create Project'
+          )}
+        </Button>
       </form>
     </Form>
   )

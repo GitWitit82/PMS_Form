@@ -1,66 +1,45 @@
 /**
- * Individual Project API Routes
- * Handles operations for single projects
+ * Project Detail API Route
+ * Handles operations for individual projects
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { z } from 'zod'
 
-const projectUpdateSchema = z.object({
-  name: z.string().min(1, 'Project name is required').optional(),
-  description: z.string().optional(),
-  customer_id: z.number().optional(),
-  start_date: z.string().datetime().optional().nullable(),
-  end_date: z.string().datetime().optional().nullable(),
-  status: z.enum(['Not Started', 'In Progress', 'On Hold', 'Completed', 'Cancelled']).optional(),
-})
+interface RouteParams {
+  params: {
+    projectId: string
+  }
+}
 
-/**
- * GET /api/projects/[projectId]
- * Get a single project by ID
- */
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { projectId: string } }
-) {
+export async function GET(request: NextRequest, { params }: RouteParams) {
+  if (!params?.projectId) {
+    return NextResponse.json(
+      { error: 'Project ID is required' },
+      { status: 400 }
+    )
+  }
+
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user) {
-      return NextResponse.json(
-        { error: 'Not authenticated' },
-        { status: 401 }
-      )
-    }
-
-    const { projectId } = params
-    const id = Number(projectId)
-    
-    if (isNaN(id)) {
-      return NextResponse.json(
-        { error: 'Invalid project ID' },
-        { status: 400 }
-      )
-    }
-
+    const projectId = parseInt(params.projectId)
     const project = await prisma.project.findUnique({
-      where: { project_id: id },
+      where: { project_id: projectId },
       include: {
         Customer: true,
         tasks: {
-          include: {
-            Resource: true,
-            Department: true
-          }
+          orderBy: {
+            created_at: 'desc',
+          },
         },
         forms: {
           include: {
             form: true,
-            template: true
-          }
-        }
-      }
+            template: true,
+          },
+          orderBy: {
+            created_at: 'desc',
+          },
+        },
+      },
     })
 
     if (!project) {
@@ -70,9 +49,9 @@ export async function GET(
       )
     }
 
-    return NextResponse.json({ data: project })
+    return NextResponse.json(project)
   } catch (error) {
-    console.error('Error fetching project:', error instanceof Error ? error.message : error)
+    console.error('Error fetching project:', error)
     return NextResponse.json(
       { error: 'Failed to fetch project' },
       { status: 500 }
@@ -80,81 +59,35 @@ export async function GET(
   }
 }
 
-/**
- * PATCH /api/projects/[projectId]
- * Update a single project
- */
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { projectId: string } }
-) {
+export async function PATCH(request: NextRequest, { params }: RouteParams) {
+  if (!params?.projectId) {
+    return NextResponse.json(
+      { error: 'Project ID is required' },
+      { status: 400 }
+    )
+  }
+
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
-    const projectId = Number(params.projectId)
-    if (isNaN(projectId)) {
-      return NextResponse.json(
-        { error: 'Invalid project ID' },
-        { status: 400 }
-      )
-    }
-
-    const body = await request.json()
-    const validatedData = projectUpdateSchema.parse(body)
-
-    const updateData = {
-      ...validatedData,
-      start_date: validatedData.start_date
-        ? new Date(validatedData.start_date)
-        : undefined,
-      end_date: validatedData.end_date
-        ? new Date(validatedData.end_date)
-        : undefined,
-    }
+    const projectId = parseInt(params.projectId)
+    const data = await request.json()
 
     const project = await prisma.project.update({
       where: { project_id: projectId },
-      data: updateData,
+      data: {
+        name: data.name,
+        description: data.description,
+        customer_id: parseInt(data.customer_id),
+        status: data.status,
+        vin_number: data.vin_number,
+        invoice_number: data.invoice_number,
+      },
       include: {
-        Customer: {
-          select: {
-            name: true,
-            email: true,
-            phone: true,
-          },
-        },
-        Task: {
-          select: {
-            task_id: true,
-            name: true,
-            status: true,
-            Resource: {
-              select: {
-                name: true,
-              },
-            },
-          },
-          orderBy: {
-            created_at: 'desc',
-          },
-        },
+        Customer: true,
       },
     })
 
-    return NextResponse.json({ data: project })
+    return NextResponse.json(project)
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid request data', details: error.errors },
-        { status: 400 }
-      )
-    }
     console.error('Error updating project:', error)
     return NextResponse.json(
       { error: 'Failed to update project' },
@@ -163,38 +96,21 @@ export async function PATCH(
   }
 }
 
-/**
- * DELETE /api/projects/[projectId]
- * Delete a single project
- */
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { projectId: string } }
-) {
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  if (!params?.projectId) {
+    return NextResponse.json(
+      { error: 'Project ID is required' },
+      { status: 400 }
+    )
+  }
+
   try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
-    const projectId = Number(params.projectId)
-    if (isNaN(projectId)) {
-      return NextResponse.json(
-        { error: 'Invalid project ID' },
-        { status: 400 }
-      )
-    }
-
+    const projectId = parseInt(params.projectId)
     await prisma.project.delete({
       where: { project_id: projectId },
     })
 
-    return NextResponse.json({ 
-      data: { message: 'Project deleted successfully' }
-    })
+    return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Error deleting project:', error)
     return NextResponse.json(

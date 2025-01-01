@@ -1,17 +1,11 @@
+/**
+ * Project List Component
+ * Displays a list of projects with filtering and sorting capabilities
+ */
 'use client'
 
-import { useState, useEffect } from 'react'
-import { format } from 'date-fns'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Table,
   TableBody,
@@ -20,117 +14,101 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { PlusIcon, SearchIcon } from 'lucide-react'
-import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { toast } from '@/components/ui/use-toast'
+import { MoreHorizontal } from 'lucide-react'
+import { ProjectCreateButton } from './project-create-button'
 
 interface Project {
   project_id: number
   name: string
+  description: string
+  status: string
+  customer_id: number
+  vin_number?: string
+  invoice_number?: string
+  created_at: string
+  updated_at: string
   Customer: {
     name: string
   }
-  start_date?: Date | null
-  end_date?: Date | null
-  status: string
-  Task: Array<{
-    task_id: number
-    status: string
-  }>
 }
 
-export function ProjectList() {
-  const [projects, setProjects] = useState<Project[]>([])
-  const [loading, setLoading] = useState(true)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('all')
+interface ProjectListProps {
+  initialProjects: Project[]
+}
 
-  useEffect(() => {
-    async function fetchProjects() {
-      try {
-        const response = await fetch('/api/projects')
-        const result = await response.json()
+export function ProjectList({ initialProjects }: ProjectListProps) {
+  const router = useRouter()
+  const [projects, setProjects] = useState(initialProjects)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState('ALL')
 
-        if (!response.ok) {
-          throw new Error(result.error || 'Failed to fetch projects')
-        }
-
-        setProjects(result.data || [])
-      } catch (error) {
-        console.error('Error fetching projects:', error)
-        toast.error('Failed to load projects')
-        setProjects([])
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchProjects()
-  }, [])
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Completed':
-        return 'bg-green-100 text-green-800'
-      case 'In Progress':
-        return 'bg-blue-100 text-blue-800'
-      case 'On Hold':
-        return 'bg-yellow-100 text-yellow-800'
-      case 'Cancelled':
-        return 'bg-red-100 text-red-800'
-      default:
-        return 'bg-gray-100 text-gray-800'
-    }
-  }
-
-  const getProjectProgress = (project: Project) => {
-    const totalTasks = project.Task?.length || 0
-    if (totalTasks === 0) return 0
-    const completedTasks = project.Task.filter(
-      (task) => task.status === 'Completed'
-    ).length
-    return Math.round((completedTasks / totalTasks) * 100)
-  }
-
-  const filteredProjects = Array.isArray(projects) 
-    ? projects.filter((project) => {
-        const matchesSearch =
-          searchQuery === '' ||
-          project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          project.Customer.name.toLowerCase().includes(searchQuery.toLowerCase())
-
-        const matchesStatus =
-          statusFilter === 'all' || project.status === statusFilter
-
-        return matchesSearch && matchesStatus
+  const handleDelete = async (projectId: number) => {
+    try {
+      const response = await fetch(`/api/projects/${projectId}`, {
+        method: 'DELETE',
       })
-    : []
 
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        <div className="h-8 bg-muted animate-pulse rounded w-1/4" />
-        <div className="space-y-2">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-12 bg-muted animate-pulse rounded" />
-          ))}
-        </div>
-      </div>
-    )
+      if (!response.ok) {
+        throw new Error('Failed to delete project')
+      }
+
+      setProjects((prev) =>
+        prev.filter((project) => project.project_id !== projectId)
+      )
+
+      toast({
+        title: 'Project deleted',
+        description: 'The project has been successfully deleted.',
+      })
+
+      router.refresh()
+    } catch (error) {
+      console.error('Error deleting project:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to delete the project. Please try again.',
+        variant: 'destructive',
+      })
+    }
   }
+
+  const filteredProjects = projects
+    .filter((project) =>
+      project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      project.Customer.name.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .filter(
+      (project) =>
+        statusFilter === 'ALL' || project.status === statusFilter
+    )
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row justify-between gap-4">
-        <div className="flex flex-1 items-center space-x-2">
-          <div className="relative flex-1">
-            <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-            <Input
-              placeholder="Search projects..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8"
-            />
-          </div>
+      <div className="flex justify-between items-center">
+        <div className="flex gap-4 items-center">
+          <Input
+            placeholder="Search projects..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-[300px]"
+          />
           <Select
             value={statusFilter}
             onValueChange={setStatusFilter}
@@ -139,19 +117,15 @@ export function ProjectList() {
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="Not Started">Not Started</SelectItem>
-              <SelectItem value="In Progress">In Progress</SelectItem>
-              <SelectItem value="On Hold">On Hold</SelectItem>
-              <SelectItem value="Completed">Completed</SelectItem>
-              <SelectItem value="Cancelled">Cancelled</SelectItem>
+              <SelectItem value="ALL">All Status</SelectItem>
+              <SelectItem value="PENDING">Pending</SelectItem>
+              <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+              <SelectItem value="COMPLETED">Completed</SelectItem>
+              <SelectItem value="ON_HOLD">On Hold</SelectItem>
             </SelectContent>
           </Select>
         </div>
-        <Button onClick={() => window.location.href = '/projects/new'}>
-          <PlusIcon className="h-4 w-4 mr-2" />
-          New Project
-        </Button>
+        <ProjectCreateButton />
       </div>
 
       <div className="rounded-md border">
@@ -160,62 +134,58 @@ export function ProjectList() {
             <TableRow>
               <TableHead>Project Name</TableHead>
               <TableHead>Customer</TableHead>
-              <TableHead>Timeline</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Progress</TableHead>
-              <TableHead className="text-right">Tasks</TableHead>
+              <TableHead>Created</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredProjects.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={6}
-                  className="h-24 text-center text-muted-foreground"
-                >
-                  No projects found
+            {filteredProjects.map((project) => (
+              <TableRow key={project.project_id}>
+                <TableCell>{project.name}</TableCell>
+                <TableCell>{project.Customer.name}</TableCell>
+                <TableCell>{project.status}</TableCell>
+                <TableCell>
+                  {new Date(project.created_at).toLocaleDateString()}
+                </TableCell>
+                <TableCell>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        className="h-8 w-8 p-0"
+                      >
+                        <span className="sr-only">Open menu</span>
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                      <DropdownMenuItem
+                        onClick={() =>
+                          router.push(`/projects/${project.project_id}`)
+                        }
+                      >
+                        View Details
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() =>
+                          router.push(`/projects/${project.project_id}/edit`)
+                        }
+                      >
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-red-600"
+                        onClick={() => handleDelete(project.project_id)}
+                      >
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </TableCell>
               </TableRow>
-            ) : (
-              filteredProjects.map((project) => (
-                <TableRow
-                  key={project.project_id}
-                  className="cursor-pointer hover:bg-muted/50"
-                  onClick={() => window.location.href = `/projects/${project.project_id}`}
-                >
-                  <TableCell className="font-medium">{project.name}</TableCell>
-                  <TableCell>{project.Customer.name}</TableCell>
-                  <TableCell>
-                    {project.start_date && project.end_date ? (
-                      <span className="text-sm text-muted-foreground">
-                        {format(new Date(project.start_date), 'MMM d, yyyy')} -{' '}
-                        {format(new Date(project.end_date), 'MMM d, yyyy')}
-                      </span>
-                    ) : (
-                      <span className="text-sm text-muted-foreground">
-                        No dates set
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={getStatusColor(project.status)}>
-                      {project.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="w-full bg-gray-200 rounded-full h-2.5">
-                      <div
-                        className="bg-blue-600 h-2.5 rounded-full"
-                        style={{ width: `${getProjectProgress(project)}%` }}
-                      ></div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {project.Task?.length || 0} tasks
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
+            ))}
           </TableBody>
         </Table>
       </div>

@@ -1,46 +1,35 @@
-'use client'
-
-import { useRouter } from 'next/navigation'
+/**
+ * Projects List Page
+ * Displays a list of all projects with filtering and sorting capabilities
+ */
+import { Metadata } from 'next'
+import { prisma } from '@/lib/prisma'
 import { ProjectList } from '@/components/projects/project-list'
-import { ProjectCreateButton } from '@/components/projects/project-create-button'
-import { CreateTravelerButton } from '@/components/projects/create-traveler-button'
-import { useProjects } from '@/hooks/use-projects'
 
-export default function ProjectsPage() {
-  const router = useRouter()
-  const { projects, loading } = useProjects()
+export const metadata: Metadata = {
+  title: 'Projects',
+  description: 'View and manage all projects in the system.',
+}
 
-  const handleViewProject = (projectId: number) => {
-    router.push(`/projects/${projectId}`)
-  }
+export default async function ProjectsPage() {
+  const projects = await prisma.project.findMany({
+    include: {
+      Customer: true,
+    },
+    orderBy: {
+      created_at: 'desc',
+    },
+  })
 
   return (
-    <div className="container py-8">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">Projects</h1>
-          <p className="text-muted-foreground">
-            Manage and track all your projects in one place
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <CreateTravelerButton projectId={0} />
-          <ProjectCreateButton />
-        </div>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Projects</h1>
+        <p className="text-muted-foreground">
+          View and manage all projects in the system.
+        </p>
       </div>
-
-      {loading ? (
-        <div className="space-y-4">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-16 bg-muted animate-pulse rounded-lg" />
-          ))}
-        </div>
-      ) : (
-        <ProjectList
-          projects={projects}
-          onViewProject={handleViewProject}
-        />
-      )}
+      <ProjectList initialProjects={projects} />
     </div>
   )
 } 
