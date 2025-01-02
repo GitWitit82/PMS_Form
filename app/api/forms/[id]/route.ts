@@ -26,12 +26,6 @@ export async function GET(
             version: 'desc'
           },
           take: 1
-        },
-        workflowTasks: {
-          select: {
-            name: true,
-            stage: true
-          }
         }
       }
     })
@@ -54,8 +48,7 @@ export async function GET(
         name: form.department.name,
         color: form.department.color
       },
-      templates: form.templates,
-      workflowTasks: form.workflowTasks
+      templates: form.templates
     }
 
     return NextResponse.json(transformedForm)

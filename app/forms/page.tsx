@@ -41,18 +41,12 @@ interface Department {
   color: string
 }
 
-interface WorkflowTask {
-  name: string
-  stage: string
-}
-
 interface Form {
   form_id: number
   title: string
   description: string
   type: string
   department: Department
-  workflowTasks: WorkflowTask[]
   page: number
 }
 

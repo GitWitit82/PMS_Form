@@ -56,6 +56,28 @@ interface FormBuilderProps {
   }) => void
 }
 
+interface DynamicFieldProps {
+  field: {
+    type: string
+    name: string
+    label: string
+    validation?: {
+      required?: boolean
+      pattern?: string
+      min?: number
+      max?: number
+    }
+    options?: Array<{
+      label: string
+      value: string
+    }>
+  }
+}
+
+const DynamicField = ({ field }: DynamicFieldProps) => {
+  // Implementation of dynamic field rendering
+}
+
 export function FormBuilder({ formId, onSave }: FormBuilderProps) {
   const router = useRouter()
   const [title, setTitle] = useState('')

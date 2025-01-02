@@ -38,7 +38,6 @@ export async function GET() {
           },
           take: 1
         },
-        workflowTasks: true
       },
       orderBy: [
         { page: 'asc' },
@@ -68,10 +67,6 @@ export async function GET() {
         name: form.department?.name || 'Unknown',
         color: form.department?.color || '#000000'
       },
-      workflowTasks: form.workflowTasks.map(task => ({
-        name: task.name || '',
-        stage: task.stage || ''
-      }))
     }))
 
     return new NextResponse(

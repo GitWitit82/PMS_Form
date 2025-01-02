@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { ActivityFeed } from '@/components/activity-feed'
 import { CalendarIcon, Users2Icon, ListTodoIcon, Pencil, Trash2 } from 'lucide-react'
+import { WorkflowForm } from '@/components/projects/workflow-form'
 
 interface Task {
   task_id: number
@@ -59,6 +60,17 @@ interface Project {
   updated_at: string
   start_date?: Date | null
   end_date?: Date | null
+  workflow_id?: number | null
+  workflow?: {
+    workflow_id: number
+    workflowTasks: Array<{
+      workflow_task_id: number
+      name: string
+      description?: string
+      status: string
+      order: number
+    }>
+  } | null
   Customer: {
     name: string
     email: string
@@ -277,6 +289,7 @@ export function ProjectDetail({ project, onEdit }: ProjectDetailProps) {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="tasks">Tasks</TabsTrigger>
           <TabsTrigger value="forms">Forms</TabsTrigger>
+          <TabsTrigger value="workflow">Workflow</TabsTrigger>
           <TabsTrigger value="activity">Activity</TabsTrigger>
         </TabsList>
 
@@ -384,6 +397,13 @@ export function ProjectDetail({ project, onEdit }: ProjectDetailProps) {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="workflow">
+          <WorkflowForm 
+            projectId={project.project_id}
+            project={project}
+          />
         </TabsContent>
 
         <TabsContent value="activity">

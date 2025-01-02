@@ -53,13 +53,29 @@ export default async function ProjectDetailPage({
     },
   })
 
+  const workflow = project?.workflow_id ? await prisma.workflow.findUnique({
+    where: { workflow_id: project.workflow_id },
+    include: {
+      workflowTasks: {
+        orderBy: {
+          order: 'asc',
+        },
+      },
+    },
+  }) : null;
+
+  const projectWithWorkflow = {
+    ...project,
+    workflow,
+  };
+
   if (!project) {
     notFound()
   }
 
   return (
     <div className="container mx-auto py-6">
-      <ProjectDetail project={project} />
+      <ProjectDetail project={projectWithWorkflow} />
     </div>
   )
 } 

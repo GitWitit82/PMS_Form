@@ -43,6 +43,7 @@ export function WorkflowForm({ projectId, onSuccess, isNewProject = false, proje
     invoice: project?.invoice_number || '',
     date: new Date().toISOString().split('T')[0]
   })
+  const [loading, setLoading] = useState(true)
 
   // Update form data when project changes
   useEffect(() => {
@@ -55,6 +56,7 @@ export function WorkflowForm({ projectId, onSuccess, isNewProject = false, proje
         vin: project.vin_number || '',
         invoice: project.invoice_number || ''
       }))
+      setLoading(false)
     }
   }, [project])
 
@@ -137,8 +139,12 @@ export function WorkflowForm({ projectId, onSuccess, isNewProject = false, proje
     }
   }
 
+  if (loading) {
+    return <div className="p-8 text-center">Loading workflow...</div>
+  }
+
   return (
-    <div className="max-h-[80vh] overflow-y-auto">
+    <div className="max-h-[calc(100vh-200px)] overflow-y-auto rounded-lg border bg-background">
       <div className="p-4 max-w-[1400px] mx-auto bg-white">
         {isNewProject && (
           <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">

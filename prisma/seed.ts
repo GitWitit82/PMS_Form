@@ -379,14 +379,12 @@ async function main() {
       },
       update: {
         ...task,
-        status: 'pending',
-        has_form: false
+        status: 'pending'
       },
       create: {
         ...task,
         workflow_task_id: task.order,
-        status: 'pending',
-        has_form: false
+        status: 'pending'
       }
     })
   }
