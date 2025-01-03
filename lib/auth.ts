@@ -1,12 +1,11 @@
-import bcrypt from 'bcrypt'
 import { NextAuthOptions } from 'next-auth'
+import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import CredentialsProvider from 'next-auth/providers/credentials'
+import { verifyCredentials } from './server/auth-utils'
 import { prisma } from '@/lib/prisma'
 
-/**
- * NextAuth configuration options
- */
 export const authOptions: NextAuthOptions = {
+  adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
       name: 'credentials',
@@ -20,26 +19,16 @@ export const authOptions: NextAuthOptions = {
             throw new Error('Please enter both username and PIN')
           }
 
-          const user = await prisma.user.findUnique({
-            where: { username: credentials.username }
-          })
+          const { isValid, user } = await verifyCredentials(
+            credentials.username,
+            credentials.pin
+          )
 
-          if (!user) {
+          if (!isValid || !user) {
             throw new Error('Invalid username or PIN')
           }
 
-          const isValid = await bcrypt.compare(credentials.pin, user.pin_hash)
-
-          if (!isValid) {
-            throw new Error('Invalid username or PIN')
-          }
-
-          return {
-            id: user.user_id.toString(),
-            username: user.username,
-            email: user.email,
-            role: user.role
-          }
+          return user
         } catch (error) {
           console.error('Auth error:', error)
           throw error
@@ -81,13 +70,6 @@ export const authOptions: NextAuthOptions = {
  */
 export const isValidPin = (pin: string): boolean => {
   return /^\d{4}$/.test(pin)
-}
-
-/**
- * Hashes a PIN for secure storage
- */
-export const hashPin = async (pin: string): Promise<string> => {
-  return await bcrypt.hash(pin, 10)
 }
 
 /**

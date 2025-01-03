@@ -3,16 +3,9 @@
 import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { format } from 'date-fns'
-import { ActivityType, ActivityAction } from '@/lib/activity-logger'
+import { ActivityType, ActivityAction, Activity as ActivityBase } from '@/lib/activity-logger'
 
-interface Activity {
-  activity_id: number
-  type: ActivityType
-  entity_type: string
-  entity_id: number
-  action: ActivityAction
-  details: Record<string, any>
-  created_at: string
+interface Activity extends ActivityBase {
   user: {
     username: string
     email: string
@@ -20,85 +13,69 @@ interface Activity {
 }
 
 interface ActivityFeedProps {
-  userId?: number
-  entityType?: string
-  entityId?: number
-  limit?: number
-  className?: string
+  initialActivities?: Activity[]
 }
 
-/**
- * A component that displays a feed of user activities
- */
-export function ActivityFeed({
-  userId,
-  entityType,
-  entityId,
-  limit = 10,
-  className = '',
-}: ActivityFeedProps) {
+export function ActivityFeed({ initialActivities = [] }: ActivityFeedProps) {
   const { data: session } = useSession()
-  const [activities, setActivities] = useState<Activity[]>([])
-  const [loading, setLoading] = useState(true)
+  const [activities, setActivities] = useState<Activity[]>(initialActivities)
+  const [loading, setLoading] = useState(!initialActivities.length)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchActivities = async () => {
+      if (!session?.user) return
+      
       try {
         setLoading(true)
         setError(null)
 
-        const params = new URLSearchParams()
-        if (userId) params.append('userId', userId.toString())
-        if (entityType) params.append('entityType', entityType)
-        if (entityId) params.append('entityId', entityId.toString())
-        if (limit) params.append('limit', limit.toString())
-
-        const response = await fetch(`/api/activities?${params.toString()}`)
+        const response = await fetch('/api/activities')
         if (!response.ok) {
           throw new Error('Failed to fetch activities')
         }
 
         const data = await response.json()
-        setActivities(data.data)
+        setActivities(data.activities)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred')
+        console.error('Error fetching activities:', err)
       } finally {
         setLoading(false)
       }
     }
 
-    if (session?.user) {
+    if (!initialActivities.length) {
       fetchActivities()
     }
-  }, [session, userId, entityType, entityId, limit])
+  }, [session, initialActivities])
 
-  const getActivityIcon = (type: ActivityType) => {
+  const getActivityIcon = (type: ActivityType): string => {
     switch (type) {
-      case 'form':
+      case ActivityType.FORM:
         return '📝'
-      case 'project':
+      case ActivityType.PROJECT:
         return '📊'
-      case 'task':
+      case ActivityType.TASK:
         return '✅'
-      case 'workflow':
+      case ActivityType.WORKFLOW:
         return '🔄'
-      case 'user':
+      case ActivityType.USER:
         return '👤'
       default:
         return '📌'
     }
   }
 
-  const getActionColor = (action: ActivityAction) => {
+  const getActionColor = (action: ActivityAction): string => {
     switch (action) {
-      case 'create':
+      case ActivityAction.CREATE:
         return 'text-green-600'
-      case 'update':
+      case ActivityAction.UPDATE:
         return 'text-blue-600'
-      case 'delete':
+      case ActivityAction.DELETE:
         return 'text-red-600'
-      case 'complete':
+      case ActivityAction.COMPLETE:
         return 'text-purple-600'
       default:
         return 'text-gray-600'
@@ -130,7 +107,7 @@ export function ActivityFeed({
   }
 
   return (
-    <div className={`space-y-4 ${className}`}>
+    <div className="space-y-4">
       {activities.map((activity) => (
         <div
           key={activity.activity_id}

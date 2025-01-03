@@ -1,10 +1,37 @@
 import { PrismaClient, UserRole } from '@prisma/client'
 import bcrypt from 'bcrypt'
+import { defaultProjectForms } from '@/lib/project-forms'
 
 const prisma = new PrismaClient()
 
 async function hashPin(pin: string): Promise<string> {
   return await bcrypt.hash(pin, 10)
+}
+
+async function seedDefaultForms() {
+  for (const form of defaultProjectForms) {
+    const existingForm = await prisma.form.findFirst({
+      where: { type: form.type }
+    })
+
+    if (!existingForm) {
+      await prisma.form.create({
+        data: {
+          ...form,
+          templates: {
+            create: {
+              name: form.title,
+              description: form.description,
+              version: 1,
+              is_active: true,
+              fields: { items: form.fields },
+              layout: {}
+            }
+          }
+        }
+      })
+    }
+  }
 }
 
 async function main() {
@@ -390,6 +417,8 @@ async function main() {
   }
 
   console.log('Created workflow tasks')
+
+  await seedDefaultForms()
 }
 
 main()

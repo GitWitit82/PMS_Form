@@ -4,8 +4,9 @@
  */
 'use client'
 
-import { useState } from 'react'
-import { Workflow, WorkflowTask } from '@prisma/client'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
 import {
   Table,
   TableBody,
@@ -14,93 +15,132 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Button } from '@/components/ui/button'
-import { PlusCircle, ChevronDown, ChevronRight } from 'lucide-react'
-import { formatDate } from '@/lib/utils'
+import { toast } from 'sonner'
+import { Pencil, Trash2 } from 'lucide-react'
 
-type WorkflowWithTasks = Workflow & {
-  workflowTasks: WorkflowTask[]
+interface Workflow {
+  workflow_id: number
+  name: string
+  description: string
+  created_at: string
+  workflowTasks: Array<{
+    workflow_task_id: number
+    name: string
+    status: string
+  }>
 }
 
-interface WorkflowListProps {
-  workflows: WorkflowWithTasks[]
-  onCreateWorkflow?: () => void
-  onEditWorkflow?: (workflow: WorkflowWithTasks) => void
-  onDeleteWorkflow?: (workflowId: number) => void
-}
+export function WorkflowList() {
+  const router = useRouter()
+  const [workflows, setWorkflows] = useState<Workflow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-export function WorkflowList({
-  workflows,
-  onCreateWorkflow,
-  onEditWorkflow,
-  onDeleteWorkflow,
-}: WorkflowListProps) {
-  const [expandedWorkflows, setExpandedWorkflows] = useState<number[]>([])
+  useEffect(() => {
+    const fetchWorkflows = async () => {
+      try {
+        const response = await fetch('/api/workflows')
+        if (!response.ok) {
+          throw new Error('Failed to fetch workflows')
+        }
+        const data = await response.json()
+        setWorkflows(data)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An error occurred')
+        toast.error('Failed to load workflows')
+      } finally {
+        setLoading(false)
+      }
+    }
 
-  const toggleWorkflow = (workflowId: number) => {
-    setExpandedWorkflows((prev) =>
-      prev.includes(workflowId)
-        ? prev.filter((id) => id !== workflowId)
-        : [...prev, workflowId]
+    fetchWorkflows()
+  }, [])
+
+  const handleDelete = async (id: number) => {
+    try {
+      const response = await fetch(`/api/workflows/${id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to delete workflow')
+      }
+
+      setWorkflows(workflows.filter(w => w.workflow_id !== id))
+      toast.success('Workflow deleted successfully')
+    } catch (error) {
+      console.error('Error deleting workflow:', error)
+      toast.error('Failed to delete workflow')
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="h-16 bg-muted animate-pulse rounded-lg" />
+        ))}
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-8 text-red-500">
+        <p>{error}</p>
+        <Button 
+          variant="outline" 
+          className="mt-4"
+          onClick={() => window.location.reload()}
+        >
+          Try Again
+        </Button>
+      </div>
+    )
+  }
+
+  if (!workflows.length) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-muted-foreground">No workflows found</p>
+      </div>
     )
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Workflows</h2>
-        <Button onClick={onCreateWorkflow}>
-          <PlusCircle className="h-4 w-4 mr-2" />
-          Create Workflow
-        </Button>
-      </div>
-
+    <div className="border rounded-lg">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[40px]"></TableHead>
             <TableHead>Name</TableHead>
             <TableHead>Description</TableHead>
-            <TableHead>Created At</TableHead>
             <TableHead>Tasks</TableHead>
-            <TableHead className="w-[100px]">Actions</TableHead>
+            <TableHead>Created</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {workflows.map((workflow) => (
             <TableRow key={workflow.workflow_id}>
-              <TableCell>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => toggleWorkflow(workflow.workflow_id)}
-                >
-                  {expandedWorkflows.includes(workflow.workflow_id) ? (
-                    <ChevronDown className="h-4 w-4" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4" />
-                  )}
-                </Button>
-              </TableCell>
               <TableCell className="font-medium">{workflow.name}</TableCell>
               <TableCell>{workflow.description}</TableCell>
-              <TableCell>{formatDate(workflow.created_at)}</TableCell>
               <TableCell>{workflow.workflowTasks.length} tasks</TableCell>
-              <TableCell>
-                <div className="flex space-x-2">
+              <TableCell>{new Date(workflow.created_at).toLocaleDateString()}</TableCell>
+              <TableCell className="text-right">
+                <div className="flex justify-end gap-2">
                   <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onEditWorkflow?.(workflow)}
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => router.push(`/workflows/${workflow.workflow_id}`)}
                   >
-                    Edit
+                    <Pencil className="h-4 w-4" />
                   </Button>
                   <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => onDeleteWorkflow?.(workflow.workflow_id)}
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDelete(workflow.workflow_id)}
                   >
-                    Delete
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               </TableCell>
@@ -108,46 +148,6 @@ export function WorkflowList({
           ))}
         </TableBody>
       </Table>
-
-      {/* Expanded Task Details */}
-      {workflows.map((workflow) =>
-        expandedWorkflows.includes(workflow.workflow_id) ? (
-          <div key={`tasks-${workflow.workflow_id}`} className="pl-8 mt-4">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Task Name</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Stage</TableHead>
-                  <TableHead>Start Date</TableHead>
-                  <TableHead>End Date</TableHead>
-                  <TableHead>Priority</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {workflow.workflowTasks.map((task) => (
-                  <TableRow key={task.workflow_task_id}>
-                    <TableCell>{task.name}</TableCell>
-                    <TableCell>{task.description}</TableCell>
-                    <TableCell>{task.stage}</TableCell>
-                    <TableCell>
-                      {task.scheduled_start_date
-                        ? formatDate(task.scheduled_start_date)
-                        : 'Not set'}
-                    </TableCell>
-                    <TableCell>
-                      {task.scheduled_end_date
-                        ? formatDate(task.scheduled_end_date)
-                        : 'Not set'}
-                    </TableCell>
-                    <TableCell>{task.priority || 'Normal'}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        ) : null
-      )}
     </div>
   )
 } 

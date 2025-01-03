@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { validateCredentials } from '@/lib/auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
@@ -11,32 +12,41 @@ import { toast } from 'sonner'
 
 export default function SignIn() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     username: '',
     pin: ''
   })
+  const [error, setError] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError('')
     setLoading(true)
+
+    const validation = validateCredentials(formData.username, formData.pin)
+    if (!validation.isValid) {
+      setError(validation.error || 'Invalid credentials')
+      setLoading(false)
+      return
+    }
 
     try {
       const result = await signIn('credentials', {
         username: formData.username,
         pin: formData.pin,
         redirect: false,
+        callbackUrl: searchParams?.get('callbackUrl') || '/'
       })
 
       if (result?.error) {
-        toast.error(result.error)
-      } else {
-        toast.success('Signed in successfully')
-        router.push('/dashboard')
-        router.refresh()
+        setError(result.error)
+      } else if (result?.url) {
+        router.push(result.url)
       }
     } catch (error) {
-      toast.error('An error occurred during sign in')
+      setError('An error occurred during sign in')
     } finally {
       setLoading(false)
     }

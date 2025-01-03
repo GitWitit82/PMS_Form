@@ -43,8 +43,16 @@ interface Form {
   name: string
   description: string
   status: string
+  type: string
   template: {
     name: string
+    fields: {
+      items: Array<{
+        type: string
+        label: string
+        required?: boolean
+      }>
+    }
   }
 }
 
@@ -359,12 +367,14 @@ export function ProjectDetail({ project, onEdit }: ProjectDetailProps) {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle>Project Forms</CardTitle>
-              <Button
-                variant="outline"
-                onClick={() => router.push(`/projects/${project.project_id}/forms/new`)}
-              >
-                Add Form
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => router.push(`/projects/${project.project_id}/forms/new`)}
+                >
+                  Add Custom Form
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {project.forms.length === 0 ? (
@@ -377,7 +387,14 @@ export function ProjectDetail({ project, onEdit }: ProjectDetailProps) {
                     <Card key={form.form_id}>
                       <CardHeader>
                         <div className="flex justify-between items-center">
-                          <CardTitle className="text-lg">{form.name}</CardTitle>
+                          <div>
+                            <CardTitle className="text-lg">{form.name}</CardTitle>
+                            <p className="text-sm text-muted-foreground">
+                              {form.type.split('_').map(word => 
+                                word.charAt(0) + word.slice(1).toLowerCase()
+                              ).join(' ')}
+                            </p>
+                          </div>
                           <Badge className={getStatusColor(form.status)}>
                             {form.status}
                           </Badge>
@@ -390,6 +407,14 @@ export function ProjectDetail({ project, onEdit }: ProjectDetailProps) {
                         <p className="text-sm text-muted-foreground mt-2">
                           Template: {form.template.name}
                         </p>
+                        <div className="mt-4">
+                          <Button
+                            variant="secondary"
+                            onClick={() => router.push(`/forms/${form.form_id}`)}
+                          >
+                            Open Form
+                          </Button>
+                        </div>
                       </CardContent>
                     </Card>
                   ))}

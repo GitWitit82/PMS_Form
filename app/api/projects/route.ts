@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { createProjectForms } from '@/lib/project-forms'
 
 /**
  * GET /api/projects
@@ -78,6 +79,9 @@ export async function POST(request: NextRequest) {
         Customer: true,
       },
     })
+
+    // Create default project forms
+    await createProjectForms(project.project_id)
 
     return NextResponse.json({ data: project })
   } catch (error) {

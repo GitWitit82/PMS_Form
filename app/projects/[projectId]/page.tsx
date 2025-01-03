@@ -16,8 +16,9 @@ interface ProjectDetailPageProps {
 export async function generateMetadata({
   params,
 }: ProjectDetailPageProps): Promise<Metadata> {
+  const projectId = await Promise.resolve(parseInt(params.projectId))
   const project = await prisma.project.findUnique({
-    where: { project_id: parseInt(params.projectId) },
+    where: { project_id: projectId },
     select: { name: true },
   })
 
@@ -32,8 +33,9 @@ export async function generateMetadata({
 export default async function ProjectDetailPage({
   params,
 }: ProjectDetailPageProps) {
+  const projectId = await Promise.resolve(parseInt(params.projectId))
   const project = await prisma.project.findUnique({
-    where: { project_id: parseInt(params.projectId) },
+    where: { project_id: projectId },
     include: {
       Customer: true,
       tasks: {
@@ -44,7 +46,13 @@ export default async function ProjectDetailPage({
       forms: {
         include: {
           form: true,
-          template: true,
+          template: {
+            select: {
+              name: true,
+              fields: true,
+              layout: true
+            }
+          },
         },
         orderBy: {
           created_at: 'desc',

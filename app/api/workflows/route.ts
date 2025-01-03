@@ -18,7 +18,11 @@ export async function GET() {
 
     const workflows = await prisma.workflow.findMany({
       include: {
-        workflowTasks: true,
+        workflowTasks: {
+          orderBy: {
+            order: 'asc',
+          },
+        },
       },
       orderBy: {
         created_at: 'desc',
@@ -27,8 +31,11 @@ export async function GET() {
 
     return NextResponse.json(workflows)
   } catch (error) {
-    console.error('Error in GET /api/workflows:', error)
-    return new NextResponse('Internal Server Error', { status: 500 })
+    console.error('Error fetching workflows:', error)
+    return NextResponse.json(
+      { error: 'Failed to fetch workflows' },
+      { status: 500 }
+    )
   }
 }
 
